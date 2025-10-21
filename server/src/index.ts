@@ -1,8 +1,11 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import routes from './routes';
+import { initializeSocket } from './services/socketService';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -10,6 +13,20 @@ dotenv.config();
 // Crear aplicación Express
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
+
+// Crear servidor HTTP
+const httpServer = createServer(app);
+
+// Configurar Socket.io
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true
+  }
+});
+
+// Inicializar Socket.io
+initializeSocket(io);
 
 // Middlewares
 app.use(helmet()); // Seguridad HTTP headers
@@ -56,9 +73,11 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
   console.log(`📝 Modo: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔌 Socket.io habilitado`);
 });
 
 export default app;
+export { io };

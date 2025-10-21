@@ -4,6 +4,8 @@ import MainLayout from './layout/MainLayout';
 import LoginPage from './pages/Login/LoginPage';
 import HomePage from './pages/Home/HomePage';
 import ProtectedRoute from './components/ProtectedRoute';
+import { MonitoreoMapa } from './pages/Tracking/MonitoreoMapa';
+import { MiTracking } from './pages/Tracking/MiTracking';
 import './App.css';
 
 function App() {
@@ -30,6 +32,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <HomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tracking/mapa"
+            element={
+              <ProtectedRoute>
+                <MonitoreoMapa />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tracking/mi-ubicacion"
+            element={
+              <ProtectedRoute>
+                <MiTracking />
               </ProtectedRoute>
             }
           />
