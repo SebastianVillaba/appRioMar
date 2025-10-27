@@ -5,11 +5,7 @@ import {
   CardContent, 
   CircularProgress, 
   Divider, 
-  FormControl, 
-  FormControlLabel, 
   IconButton, 
-  Radio, 
-  RadioGroup, 
   TextField, 
   Typography 
 } from '@mui/material';
@@ -20,11 +16,15 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import PersonIcon from '@mui/icons-material/Person';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+import FacturaCompleteExample from '../../examples/FacturaCompleteExample';
+import { crearDatosFactura, generarNumeroFactura, useTicketService } from '../../services';
+import api from '../../services/api';
 
 interface Cliente {
   id: number;
   nombre: string;
-  documento?: string;
+  ruc?: string;
+  direccion: string;
 }
 
 interface Producto {
@@ -46,10 +46,10 @@ export default function HomePage() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [loadingCliente, setLoadingCliente] = useState(false);
   const [errorCliente, setErrorCliente] = useState("");
+  const [clientesEncontrados, setClientesEncontrados] = useState<Cliente[]>([]);
 
   // Estados para Productos
   const [productoSearchTerm, setProductoSearchTerm] = useState("");
-  const [searchType, setSearchType] = useState("1"); // 1: nombre, 2: código
   const [loadingProducto, setLoadingProducto] = useState(false);
   const [errorProducto, setErrorProducto] = useState("");
   const [productosEncontrados, setProductosEncontrados] = useState<Producto[]>([]);
@@ -57,6 +57,78 @@ export default function HomePage() {
   // Estados para Carrito
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [loadingFacturacion, setLoadingFacturacion] = useState(false);
+
+  // Hook para el ticket
+  const { generarTicket, loading, error } = useTicketService();
+  const [success, setSuccess] = useState(false);
+
+  // Datos de ejemplo
+    const items: ItemFactura[] = [
+        {
+            codigo: 1001,
+            mercaderia: "Laptop HP 15.6\" Core i5",
+            precio: 3500000,
+            cantidad: 1,
+            porcentajeImpuesto: 10,
+            subtotal: 3500000
+        },
+        {
+            codigo: 1002,
+            mercaderia: "Mouse Inalámbrico Logitech",
+            precio: 150000,
+            cantidad: 2,
+            porcentajeImpuesto: 10,
+            subtotal: 300000
+        },
+        {
+            codigo: 1003,
+            mercaderia: "Cable HDMI 2m",
+            precio: 50000,
+            cantidad: 1,
+            porcentajeImpuesto: 5,
+            subtotal: 50000
+        }
+    ];
+
+    // Crear datos de factura con cálculos automáticos
+    const datosFactura = crearDatosFactura({
+        // Datos de la empresa
+        nombreFantasia: "TechStore Paraguay",
+        empresaContable: "TechStore S.A.",
+        ruc: "80012345-6",
+        direccion: "Av. Mariscal López 1234, Asunción",
+        telefono: "021-555-1234",
+        rubro: "Venta de equipos informáticos",
+
+        // Datos de la venta
+        fechaHora: new Date(),
+        cliente: "Juan Pérez González",
+        rucCliente: "4567890-1",
+        direccionCliente: "Calle España 567, Fernando de la Mora",
+        telefonoCliente: "0981-123456",
+        vendedor: "María González",
+        formaVenta: "Contado",
+        tipoFactura: "Contado",
+        timbrado: "15789456",
+        fechaInicioVigencia: new Date("2024-01-01"),
+        nroFactura: generarNumeroFactura(1, 1, 456),
+
+        // Items
+        items: items
+    });
+
+    const handleImprimir = async () => {
+        setSuccess(false);
+        try {
+            await generarTicket(datosFactura);
+            setSuccess(true);
+            
+            // Limpiar mensaje de éxito después de 3 segundos
+            setTimeout(() => setSuccess(false), 3000);
+        } catch (err) {
+            console.error('Error al imprimir:', err);
+        }
+    };
 
   // Búsqueda de Cliente
   const handleBuscarCliente = async () => {
@@ -66,31 +138,33 @@ export default function HomePage() {
     }
     setLoadingCliente(true);
     setErrorCliente("");
+    setClientesEncontrados([]);
 
     try {
-      // TODO: Aquí iría la lógica del pedido al backend
-      // const response = await fetch(`/api/clientes/buscar?q=${clienteSearchTerm}`);
-      // const data = await response.json();
-      
-      // Simulación temporal
-      setTimeout(() => {
-        setClienteSeleccionado({
-          id: 1,
-          nombre: clienteSearchTerm,
-          documento: "12345678"
-        });
-        setLoadingCliente(false);
-      }, 500);
+      const response = await api.get(`/cliente/getCliente?busqueda=${encodeURIComponent(clienteSearchTerm)}`);
+      const clientes = response.data;
+      console.log(clientes);
+      setClientesEncontrados(clientes);
     } catch (err) {
+      console.error('Error al buscar el cliente:', err);
       setErrorCliente('Error al buscar el cliente.');
+      setClientesEncontrados([]);
+    } finally {
       setLoadingCliente(false);
     }
+  };
+
+  // Seleccionar cliente
+  const handleSeleccionarCliente = (cliente: Cliente) => {
+    setClienteSeleccionado(cliente);
+    setClientesEncontrados([]);
+    setClienteSearchTerm("");
   };
 
   // Búsqueda de Productos
   const handleBuscarProducto = async () => {
     if (!productoSearchTerm.trim()) {
-      setErrorProducto(`Por favor, ingrese un valor para la búsqueda por ${searchType === '1' ? 'nombre' : 'código'}.`);
+      setErrorProducto(`Por favor, ingrese un valor para la búsqueda por nombre o código`);
       setProductosEncontrados([]);
       return;
     }
@@ -99,20 +173,15 @@ export default function HomePage() {
     setProductosEncontrados([]);
 
     try {
-      // TODO: Aquí iría la lógica del pedido al backend
-      // const response = await fetch(`/api/productos/buscar?tipo=${searchType}&q=${productoSearchTerm}`);
-      // const data = await response.json();
-      
-      // Simulación temporal
-      setTimeout(() => {
-        setProductosEncontrados([
-          { id: 1, nombre: productoSearchTerm, codigo: "PROD001", precio: 1500, stock: 10 },
-          { id: 2, nombre: `${productoSearchTerm} Premium`, codigo: "PROD002", precio: 2000, stock: 5 }
-        ]);
-        setLoadingProducto(false);
-      }, 500);
+      const response = await api.get(`/producto/getProducto?busqueda=${encodeURIComponent(productoSearchTerm)}`);
+      const productos = response.data;
+      console.log(productos);
+      setProductosEncontrados(productos);
     } catch (err) {
+      console.error('Error al buscar el producto:', err);
       setErrorProducto('Error al buscar el producto.');
+      setProductosEncontrados([]);
+    } finally {
       setLoadingProducto(false);
     }
   };
@@ -255,6 +324,51 @@ export default function HomePage() {
                     {errorCliente}
                   </Typography>
                 )}
+
+                {/* Resultados de búsqueda de clientes */}
+                {clientesEncontrados.length > 0 && (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: 1, 
+                    mt: 1,
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: 1,
+                    padding: 1
+                  }}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Resultados ({clientesEncontrados.length}):
+                    </Typography>
+                    {clientesEncontrados.map((cliente) => (
+                      <Card key={cliente.id} variant="outlined" sx={{ backgroundColor: '#f8f9fa' }}>
+                        <CardContent sx={{ padding: '12px !important' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body2" fontWeight="bold">
+                                {cliente.nombre}
+                              </Typography>
+                              {cliente.ruc && (
+                                <Typography variant="caption" color="text.secondary">
+                                  Cédula: {cliente.ruc}
+                                </Typography>
+                              )}
+                            </Box>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              onClick={() => handleSeleccionarCliente(cliente)}
+                              sx={{ backgroundColor: '#28a745' }}
+                            >
+                              Seleccionar
+                            </Button>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Box>
+                )}
               </Box>
             ) : (
               <Box sx={{ 
@@ -269,9 +383,9 @@ export default function HomePage() {
                   <Typography variant="body1" fontWeight="bold">
                     {clienteSeleccionado.nombre}
                   </Typography>
-                  {clienteSeleccionado.documento && (
+                  {clienteSeleccionado.ruc && (
                     <Typography variant="body2" color="text.secondary">
-                      Doc: {clienteSeleccionado.documento}
+                      Cedula: {clienteSeleccionado.ruc}
                     </Typography>
                   )}
                 </Box>
@@ -280,12 +394,14 @@ export default function HomePage() {
                   onClick={() => {
                     setClienteSeleccionado(null);
                     setClienteSearchTerm("");
+                    setClientesEncontrados([]);
                   }}
                 >
                   Cambiar
                 </Button>
               </Box>
-            )}
+              )
+            }
           </CardContent>
         </Card>
 
@@ -303,7 +419,7 @@ export default function HomePage() {
               <TextField
                 fullWidth
                 variant="outlined"
-                placeholder={searchType === '1' ? "Buscar por nombre del producto" : "Buscar por código del producto"}
+                placeholder="Buscar producto por nombre o código"
                 size="small"
                 value={productoSearchTerm}
                 onChange={(e) => setProductoSearchTerm(e.target.value)}
@@ -314,18 +430,6 @@ export default function HomePage() {
                   }
                 }}
               />
-
-              <FormControl component="fieldset">
-                <RadioGroup
-                  row
-                  value={searchType}
-                  onChange={(e) => setSearchType(e.target.value)}
-                  sx={{ justifyContent: 'center' }}
-                >
-                  <FormControlLabel value="1" control={<Radio size="small" />} label="Nombre" />
-                  <FormControlLabel value="2" control={<Radio size="small" />} label="Código" />
-                </RadioGroup>
-              </FormControl>
 
               <Button
                 variant="contained"
@@ -345,9 +449,19 @@ export default function HomePage() {
 
               {/* Resultados de búsqueda de productos */}
               {productosEncontrados.length > 0 && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 1, 
+                  mt: 1,
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: 1,
+                  padding: 1
+                }}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Resultados:
+                    Resultados ({productosEncontrados.length}):
                   </Typography>
                   {productosEncontrados.map((producto) => (
                     <Card key={producto.id} variant="outlined" sx={{ backgroundColor: '#f8f9fa' }}>
@@ -355,7 +469,7 @@ export default function HomePage() {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Box sx={{ flex: 1 }}>
                             <Typography variant="body2" fontWeight="bold">
-                              {producto.nombre}
+                              {producto.nombreMercaderia}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
                               Código: {producto.codigo}
@@ -400,7 +514,7 @@ export default function HomePage() {
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="body2" fontWeight="bold">
-                            {item.producto.nombre}
+                            {item.producto.nombreMercaderia}
                           </Typography>
                           <IconButton
                             size="small"
@@ -465,7 +579,8 @@ export default function HomePage() {
             variant="contained"
             size="large"
             fullWidth
-            onClick={handleFinalizarFacturacion}
+            //onClick={handleFinalizarFacturacion}
+            onClick={handleImprimir}
             disabled={loadingFacturacion}
             sx={{ 
               backgroundColor: '#dc3545',
@@ -484,6 +599,7 @@ export default function HomePage() {
             )}
           </Button>
         )}
+
       </Box>
     </Box>
   );

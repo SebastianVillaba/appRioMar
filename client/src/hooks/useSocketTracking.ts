@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { connectSocket, disconnectSocket, getSocket, onEvent, offEvent, emitEvent } from '../services/socketService';
-import { UsuarioTracking, EventoUbicacion, EstadoConexion } from '../types/tracking.types';
+import type { UsuarioTracking, EventoUbicacion, EstadoConexion } from '../types/tracking.types';
 
 interface UseSocketTrackingReturn {
   usuarios: UsuarioTracking[];

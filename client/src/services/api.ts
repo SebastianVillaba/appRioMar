@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Crear instancia de axios con configuración base
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -27,8 +27,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Si el token es inválido o expiró, redirigir al login
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    // Si el token es inválido o expiró, redirigir al login (excepto para el endpoint de login)
+    if ((error.response?.status === 401 || error.response?.status === 403) && !error.config?.url?.includes('/auth/login')) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       window.location.href = '/login';
