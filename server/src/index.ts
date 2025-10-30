@@ -10,6 +10,15 @@ import { initializeSocket } from './services/socketService';
 // Cargar variables de entorno
 dotenv.config();
 
+const rawAllowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL || 'http://localhost:5173').split(',');
+
+const allowedOrigins = String(rawAllowedOrigins).split(',').map((url: string) => url.trim());
+
+const corsOptions = {
+  origin: allowedOrigins,
+  credentials: true
+};
+
 // Crear aplicación Express
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
@@ -20,7 +29,7 @@ const httpServer = createServer(app);
 // Configurar Socket.io
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true
   }
 });
@@ -30,7 +39,7 @@ initializeSocket(io);
 
 // Middlewares
 app.use(helmet()); // Seguridad HTTP headers
-app.use(cors()); // Habilitar CORS
+app.use(cors(corsOptions)); // Habilitar CORS
 app.use(express.json()); // Parser de JSON
 app.use(express.urlencoded({ extended: true })); // Parser de URL-encoded
 
