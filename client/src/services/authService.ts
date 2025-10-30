@@ -4,7 +4,7 @@ import type { LoginCredentials, LoginResponse } from '../types/Login/login.type'
 export const authService = {
   // Login
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
-    const response = await api.post<LoginResponse>('/api/auth/login', credentials);
+    const response = await api.post<LoginResponse>('/auth/login', credentials);
     return response.data;
   },
 

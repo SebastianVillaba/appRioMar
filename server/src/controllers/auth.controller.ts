@@ -37,11 +37,29 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       res.status(401).json({ message: "Contraseña incorrecta" });
       return;
     } else if (resultado === 3) {
+      const vendedor = await executeRequest({
+          query: `select [dbo].[funObtenerIdVendedor] (${result.recordset[0].idUsuario}) as idVendedor`
+      })
+
+      const vendedorNombre = await executeRequest({
+          query: `select [dbo].[funObtenerNombreVendedor] (${vendedor.recordset[0].idVendedor}) as nombreVendedor`
+      })
+
+      // constante que da la informacion al client con el idCobrador tambien
+      const resultFinal = {
+          ...result.recordset[0],
+          idVendedor: vendedor.recordset[0].idVendedor,
+          nombreVendedor: vendedorNombre.recordset[0].nombreVendedor
+        }
+
+      console.log(resultFinal);
       const token = jwt.sign(
-        { id: idUsuario },
-        process.env.JWT_SECRET || "mi_secreto_temporal",
-        { expiresIn: "1h" }
+        resultFinal,
+        process.env.JWT_SECRET || "andate a la puta",
+        { expiresIn: "30m" }
       );
+
+      
 
       res.json({
         message: "Login exitoso",

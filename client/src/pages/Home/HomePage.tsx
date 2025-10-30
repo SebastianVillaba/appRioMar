@@ -7,7 +7,11 @@ import {
   Divider, 
   IconButton, 
   TextField, 
-  Typography 
+  Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel 
 } from '@mui/material';
 import { useState } from 'react';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -19,9 +23,11 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import FacturaCompleteExample from '../../examples/FacturaCompleteExample';
 import { crearDatosFactura, generarNumeroFactura, useTicketService } from '../../services';
 import api from '../../services/api';
+import CantidadModal from '../../components/HomePage/CantidadModal';
+import type { Venta, TipoVenta } from '../../types/venta.types';
 
 interface Cliente {
-  id: number;
+  idCliente: number;
   nombre: string;
   ruc?: string;
   direccion: string;
@@ -38,6 +44,7 @@ interface Producto {
 interface ItemCarrito {
   producto: Producto;
   cantidad: number;
+  cantidadAcomodato: number;
 }
 
 export default function HomePage() {
@@ -58,9 +65,22 @@ export default function HomePage() {
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [loadingFacturacion, setLoadingFacturacion] = useState(false);
 
+  // Estados para el modal de cantidad
+  const [modalOpen, setModalOpen] = useState(false);
+  const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
+
   // Hook para el ticket
   const { generarTicket, loading, error } = useTicketService();
   const [success, setSuccess] = useState(false);
+
+  // Estado para tipo de venta
+  const [tipoVenta, setTipoVenta] = useState<number>(1); // Default: Contado
+  
+  // Opciones de tipo de venta
+  const tiposVenta: TipoVenta[] = [
+    { id: 1, nombre: 'Contado' },
+    { id: 2, nombre: 'Crédito' }
+  ];
 
   // Datos de ejemplo
     const items: ItemFactura[] = [
@@ -186,23 +206,40 @@ export default function HomePage() {
     }
   };
 
-  // Agregar producto al carrito
-  const handleAgregarAlCarrito = (producto: Producto) => {
-    const itemExistente = carrito.find(item => item.producto.id === producto.id);
+  // Abrir modal para seleccionar cantidades
+  const handleSeleccionarProducto = (producto: Producto) => {
+    setProductoSeleccionado(producto);
+    setModalOpen(true);
+  };
+
+  // Agregar producto al carrito con cantidades
+  const handleAgregarAlCarrito = (cantidad: number, cantidadAcomodato: number) => {
+    if (!productoSeleccionado) return;
+
+    const itemExistente = carrito.find(item => item.producto.id === productoSeleccionado.id);
     
     if (itemExistente) {
       setCarrito(carrito.map(item => 
-        item.producto.id === producto.id 
-          ? { ...item, cantidad: item.cantidad + 1 }
+        item.producto.id === productoSeleccionado.id 
+          ? { 
+              ...item, 
+              cantidad: item.cantidad + cantidad,
+              cantidadAcomodato: item.cantidadAcomodato + cantidadAcomodato
+            }
           : item
       ));
     } else {
-      setCarrito([...carrito, { producto, cantidad: 1 }]);
+      setCarrito([...carrito, { 
+        producto: productoSeleccionado, 
+        cantidad, 
+        cantidadAcomodato 
+      }]);
     }
     
     // Limpiar búsqueda de productos
     setProductoSearchTerm("");
     setProductosEncontrados([]);
+    setProductoSeleccionado(null);
   };
 
   // Modificar cantidad en carrito
@@ -240,31 +277,43 @@ export default function HomePage() {
     setLoadingFacturacion(true);
 
     try {
-      // TODO: Aquí iría la lógica para enviar la factura al backend
-      // const response = await fetch('/api/facturas', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     clienteId: clienteSeleccionado.id,
-      //     items: carrito.map(item => ({
-      //       productoId: item.producto.id,
-      //       cantidad: item.cantidad,
-      //       precio: item.producto.precio
-      //     })),
-      //     total: calcularTotal()
-      //   })
-      // });
+      // Preparar datos de la venta según la interfaz Venta
+      const ventaData: Venta = {
+        idConfig: 3, // Constante para dispositivos web
+        idPersonaJur: 1, // Constante
+        idSucursal: 1, 
+        idCliente: clienteSeleccionado.idCliente,
+        idTipoVenta: tipoVenta,
+        ruc: clienteSeleccionado.ruc || '',
+        cliente: clienteSeleccionado.nombre,
+        totalVenta: calcularTotal(),
+        totalDescuento: 0, 
+        idUsuarioAlta: 1, 
+        timbrado: '', 
+        dsuc: '', 
+        dcaja: '', 
+        facturam: '', 
+        idVendedor: 1, 
+        fecha: '',
+        tipoPrecio: 1, 
+        imprimir: true,
+        imp: true,
+        unSoloItem: false
+      };
 
-      setTimeout(() => {
-        alert(`Factura generada exitosamente!\nCliente: ${clienteSeleccionado.nombre}\nTotal: $${calcularTotal().toFixed(2)}`);
-        // Limpiar todo
-        setClienteSeleccionado(null);
-        setClienteSearchTerm("");
-        setCarrito([]);
-        setLoadingFacturacion(false);
-      }, 1000);
+      const response = await api.post('/producto/finalizarVenta', ventaData);
+      
+      alert(`Factura generada exitosamente!\nCliente: ${clienteSeleccionado.nombre}\nTotal: ${calcularTotal().toLocaleString()}`);
+      
+      // Limpiar todo
+      setClienteSeleccionado(null);
+      setClienteSearchTerm("");
+      setCarrito([]);
+      setTipoVenta(1); // Reset a Contado
     } catch (err) {
-      alert('Error al generar la factura.');
+      console.error('Error al finalizar venta:', err);
+      alert('Error al generar la factura. Por favor, intente nuevamente.');
+    } finally {
       setLoadingFacturacion(false);
     }
   };
@@ -342,7 +391,7 @@ export default function HomePage() {
                       Resultados ({clientesEncontrados.length}):
                     </Typography>
                     {clientesEncontrados.map((cliente) => (
-                      <Card key={cliente.id} variant="outlined" sx={{ backgroundColor: '#f8f9fa' }}>
+                      <Card key={cliente.idCliente} variant="outlined" sx={{ backgroundColor: '#f8f9fa' }}>
                         <CardContent sx={{ padding: '12px !important' }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box sx={{ flex: 1 }}>
@@ -405,7 +454,36 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* SECCIÓN 2: BÚSQUEDA DE PRODUCTOS */}
+        {/* SECCIÓN 2: TIPO DE VENTA */}
+        <Card elevation={3}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <ReceiptIcon color="primary" />
+              <Typography variant="h6" fontWeight="bold">
+                Tipo de Venta
+              </Typography>
+            </Box>
+
+            <FormControl fullWidth size="small">
+              <InputLabel id="tipo-venta-label">Tipo de Venta</InputLabel>
+              <Select
+                labelId="tipo-venta-label"
+                id="tipo-venta-select"
+                value={tipoVenta}
+                label="Tipo de Venta"
+                onChange={(e) => setTipoVenta(e.target.value as number)}
+              >
+                {tiposVenta.map((tipo) => (
+                  <MenuItem key={tipo.id} value={tipo.id}>
+                    {tipo.nombre}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </CardContent>
+        </Card>
+
+        {/* SECCIÓN 3: BÚSQUEDA DE PRODUCTOS */}
         <Card elevation={3}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -475,13 +553,13 @@ export default function HomePage() {
                               Código: {producto.codigo}
                             </Typography>
                             <Typography variant="body2" color="primary" fontWeight="bold">
-                              ${producto.precio.toFixed(2)}
+                              {producto.precio.toLocaleString()}
                             </Typography>
                           </Box>
                           <Button
                             size="small"
                             variant="contained"
-                            onClick={() => handleAgregarAlCarrito(producto)}
+                            onClick={() => handleSeleccionarProducto(producto)}
                             sx={{ backgroundColor: '#28a745' }}
                           >
                             Agregar
@@ -496,7 +574,7 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* SECCIÓN 3: CARRITO DE PRODUCTOS */}
+        {/* SECCIÓN 4: CARRITO DE PRODUCTOS */}
         {carrito.length > 0 && (
           <Card elevation={3}>
             <CardContent>
@@ -526,7 +604,11 @@ export default function HomePage() {
                         </Box>
                         
                         <Typography variant="caption" color="text.secondary">
-                          Precio unitario: ${item.producto.precio.toFixed(2)}
+                          Precio unitario: {item.producto.precio.toLocaleString()}
+                        </Typography>
+                        
+                        <Typography variant="caption" color="text.secondary">
+                          Acomodato: {item.cantidadAcomodato}
                         </Typography>
 
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -550,7 +632,7 @@ export default function HomePage() {
                           </Box>
                           
                           <Typography variant="body1" fontWeight="bold" color="primary">
-                            ${(item.producto.precio * item.cantidad).toFixed(2)}
+                            {(item.producto.precio * item.cantidad).toLocaleString()}
                           </Typography>
                         </Box>
                       </Box>
@@ -565,7 +647,7 @@ export default function HomePage() {
                     TOTAL:
                   </Typography>
                   <Typography variant="h5" fontWeight="bold" color="primary">
-                    ${calcularTotal().toFixed(2)}
+                    {calcularTotal().toLocaleString()}
                   </Typography>
                 </Box>
               </Box>
@@ -579,8 +661,7 @@ export default function HomePage() {
             variant="contained"
             size="large"
             fullWidth
-            //onClick={handleFinalizarFacturacion}
-            onClick={handleImprimir}
+            onClick={handleFinalizarFacturacion}
             disabled={loadingFacturacion}
             sx={{ 
               backgroundColor: '#dc3545',
@@ -601,6 +682,17 @@ export default function HomePage() {
         )}
 
       </Box>
+
+      {/* Modal de Cantidad */}
+      <CantidadModal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setProductoSeleccionado(null);
+        }}
+        onConfirm={handleAgregarAlCarrito}
+        productoNombre={productoSeleccionado?.nombreMercaderia || ''}
+      />
     </Box>
   );
 }
