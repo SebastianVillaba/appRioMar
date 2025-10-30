@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Ubicacion } from '../types/tracking.types';
+import type { Ubicacion } from '../types/tracking.types';
 
 interface UseGeolocationReturn {
   ubicacion: Ubicacion | null;

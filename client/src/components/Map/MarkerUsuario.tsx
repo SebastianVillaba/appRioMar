@@ -1,6 +1,6 @@
 import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { MarkerUsuarioProps } from '../../types/tracking.types';
+import type { MarkerUsuarioProps } from '../../types/tracking.types';
 
 // Icono personalizado para el marcador (camión/chofer)
 const iconoChofer = new L.Icon({

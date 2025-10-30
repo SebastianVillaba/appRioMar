@@ -1,6 +1,6 @@
 import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
-import { EstadoConexionProps } from '../../types/tracking.types';
+import type { EstadoConexionProps } from '../../types/tracking.types';
 
 /**
  * Componente que muestra el estado de conexión Socket.io

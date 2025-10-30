@@ -50,8 +50,7 @@ export const MiTracking: React.FC = () => {
     cargando: cargandoGeo,
     permisosDenegados,
     iniciarTracking: iniciarGeo,
-    detenerTracking: detenerGeo,
-    isTracking: geoActivo
+    detenerTracking: detenerGeo
   } = useGeolocation();
 
   const {

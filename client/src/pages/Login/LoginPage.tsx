@@ -3,6 +3,7 @@ import { Box, Button, Stack, TextField, Typography, Alert } from '@mui/material'
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import axios from 'axios';
+import type { JSX } from 'react';
 
 export default function LoginPage(): JSX.Element {
   const navigate = useNavigate();

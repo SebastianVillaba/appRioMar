@@ -20,8 +20,6 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import PersonIcon from '@mui/icons-material/Person';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ReceiptIcon from '@mui/icons-material/Receipt';
-import FacturaCompleteExample from '../../examples/FacturaCompleteExample';
-import { crearDatosFactura, generarNumeroFactura, useTicketService } from '../../services';
 import api from '../../services/api';
 import CantidadModal from '../../components/HomePage/CantidadModal';
 import type { Venta, TipoVenta } from '../../types/venta.types';
@@ -35,7 +33,7 @@ interface Cliente {
 
 interface Producto {
   id: number;
-  nombre: string;
+  nombreMercaderia: string;
   codigo: string;
   precio: number;
   stock?: number;
@@ -69,10 +67,6 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
 
-  // Hook para el ticket
-  const { generarTicket, loading, error } = useTicketService();
-  const [success, setSuccess] = useState(false);
-
   // Estado para tipo de venta
   const [tipoVenta, setTipoVenta] = useState<number>(1); // Default: Contado
   
@@ -81,74 +75,6 @@ export default function HomePage() {
     { id: 1, nombre: 'Contado' },
     { id: 2, nombre: 'Crédito' }
   ];
-
-  // Datos de ejemplo
-    const items: ItemFactura[] = [
-        {
-            codigo: 1001,
-            mercaderia: "Laptop HP 15.6\" Core i5",
-            precio: 3500000,
-            cantidad: 1,
-            porcentajeImpuesto: 10,
-            subtotal: 3500000
-        },
-        {
-            codigo: 1002,
-            mercaderia: "Mouse Inalámbrico Logitech",
-            precio: 150000,
-            cantidad: 2,
-            porcentajeImpuesto: 10,
-            subtotal: 300000
-        },
-        {
-            codigo: 1003,
-            mercaderia: "Cable HDMI 2m",
-            precio: 50000,
-            cantidad: 1,
-            porcentajeImpuesto: 5,
-            subtotal: 50000
-        }
-    ];
-
-    // Crear datos de factura con cálculos automáticos
-    const datosFactura = crearDatosFactura({
-        // Datos de la empresa
-        nombreFantasia: "TechStore Paraguay",
-        empresaContable: "TechStore S.A.",
-        ruc: "80012345-6",
-        direccion: "Av. Mariscal López 1234, Asunción",
-        telefono: "021-555-1234",
-        rubro: "Venta de equipos informáticos",
-
-        // Datos de la venta
-        fechaHora: new Date(),
-        cliente: "Juan Pérez González",
-        rucCliente: "4567890-1",
-        direccionCliente: "Calle España 567, Fernando de la Mora",
-        telefonoCliente: "0981-123456",
-        vendedor: "María González",
-        formaVenta: "Contado",
-        tipoFactura: "Contado",
-        timbrado: "15789456",
-        fechaInicioVigencia: new Date("2024-01-01"),
-        nroFactura: generarNumeroFactura(1, 1, 456),
-
-        // Items
-        items: items
-    });
-
-    const handleImprimir = async () => {
-        setSuccess(false);
-        try {
-            await generarTicket(datosFactura);
-            setSuccess(true);
-            
-            // Limpiar mensaje de éxito después de 3 segundos
-            setTimeout(() => setSuccess(false), 3000);
-        } catch (err) {
-            console.error('Error al imprimir:', err);
-        }
-    };
 
   // Búsqueda de Cliente
   const handleBuscarCliente = async () => {
@@ -301,7 +227,7 @@ export default function HomePage() {
         unSoloItem: false
       };
 
-      const response = await api.post('/producto/finalizarVenta', ventaData);
+      await api.post('/producto/finalizarVenta', ventaData);
       
       alert(`Factura generada exitosamente!\nCliente: ${clienteSeleccionado.nombre}\nTotal: ${calcularTotal().toLocaleString()}`);
       

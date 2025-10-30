@@ -9,7 +9,7 @@ const Layout = () => {
     const navigate = useNavigate();
 
     const toggleDrawer = (open: boolean) => (event: KeyboardEvent | MouseEvent) => {
-        if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
+        if (event.type === 'keydown' && ((event as KeyboardEvent).key === 'Tab' || (event as KeyboardEvent).key === 'Shift')) {
             return;
         }
         setDrawerOpen(open);
