@@ -38,17 +38,17 @@ function getPool(): Promise<sql.ConnectionPool> {
   if (!poolPromise) {
     poolPromise = new sql.ConnectionPool(config)
       .connect()
-      .then((pool) => {
+      .then((pool: sql.ConnectionPool) => {
         console.log("Conectado a la base de datos");
         return pool;
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         console.error("Error al conectar a la base de datos:", err);
         poolPromise = null; // Reset para permitir reintentos
         throw err;
       });
   }
-  return poolPromise;
+  return poolPromise as Promise<sql.ConnectionPool>;
 }
 
 export async function executeRequest({

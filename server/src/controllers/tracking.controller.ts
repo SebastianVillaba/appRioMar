@@ -51,7 +51,7 @@ export const guardarUbicacion = async (
     const result = await executeRequest({
       query: 'sp_guardar_ubicacion',
       inputs: [
-        { name: 'user_id', type: sql.Int, value: userId },
+        { name: 'user_id', type: sql.Int(), value: userId }, // CORRECCIÓN: sql.Int()
         { name: 'latitude', type: sql.Decimal(10, 8), value: lat },
         { name: 'longitude', type: sql.Decimal(11, 8), value: lng },
         { name: 'velocidad', type: sql.Decimal(6, 2), value: velocidad || null },
@@ -167,9 +167,11 @@ export const obtenerHistorialUsuario = async (
     }
 
     if (limite) {
-      const limiteNum = parseInt(limite as string);
+      const limiteStr = Array.isArray(limite) ? limite[0] : String(limite);
+      const limiteNum = parseInt(limiteStr);
+      
       if (!isNaN(limiteNum) && limiteNum > 0) {
-        inputs.push({ name: 'limite', type: sql.Int, value: limiteNum });
+        inputs.push({ name: 'limite', type: sql.Int(), value: limiteNum }); // CORRECCIÓN: sql.Int()
       }
     }
 
@@ -224,8 +226,8 @@ export const actualizarEstadoTracking = async (
     const result = await executeRequest({
       query: 'sp_actualizar_estado_tracking',
       inputs: [
-        { name: 'user_id', type: sql.Int, value: userId },
-        { name: 'activo', type: sql.Bit, value: activo }
+        { name: 'user_id', type: sql.Int(), value: userId },
+        { name: 'activo', type: sql.Bit(), value: activo }
       ],
       isStoredProcedure: true
     });
