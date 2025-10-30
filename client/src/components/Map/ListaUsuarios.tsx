@@ -1,5 +1,5 @@
 import { Box, List, ListItem, ListItemButton, ListItemText, Typography, Chip } from '@mui/material';
-import { ListaUsuariosProps } from '../../types/tracking.types';
+import type { ListaUsuariosProps } from '../../types/tracking.types';
 
 /**
  * Panel lateral con lista de usuarios con tracking activo
