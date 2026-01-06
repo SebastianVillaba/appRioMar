@@ -580,7 +580,7 @@ export default function PedidoCliente() {
                         variant="contained"
                         onClick={handlePlaceOrder}
                         disabled={orderLoading}
-                        sx={{ bgcolor: '#28a745', '&:hover': { bgcolor: '#218838' } }}
+                        sx={{ bgcolor: '#28a745', '&:hover': { bgcolor: '#238b3aff' } }}
                     >
                         {orderLoading ? 'Procesando...' : 'Confirmar Pedido'}
                     </Button>
