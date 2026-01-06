@@ -3,6 +3,7 @@ import AuthLayout from './layout/AuthLayout';
 import MainLayout from './layout/MainLayout';
 import LoginPage from './pages/Login/LoginPage';
 import HomePage from './pages/Home/HomePage';
+import PedidoCliente from './pages/PedidoCliente/PedidoCliente';
 import ProtectedRoute from './components/ProtectedRoute';
 import { MonitoreoMapa } from './pages/Tracking/MonitoreoMapa';
 import { MiTracking } from './pages/Tracking/MiTracking';
@@ -48,6 +49,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <MiTracking />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pedido-cliente"
+            element={
+              <ProtectedRoute>
+                <PedidoCliente />
               </ProtectedRoute>
             }
           />
