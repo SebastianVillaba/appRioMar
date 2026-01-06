@@ -21,6 +21,11 @@ jobs:
 
     # 3. Instalar dependencias y construir el Frontend (Vite)
     - name: Build Frontend
+      env:
+        # Usamos "/api" para que la web busque en su propio dominio (riomarencarnacion.cloud/api)
+        VITE_API_URL: "/api"
+        # Usamos "/" para que el socket se conecte al mismo dominio
+        VITE_SOCKET_URL: "/"
       run: |
         cd client
         npm install --legacy-peer-deps
