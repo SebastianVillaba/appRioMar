@@ -568,13 +568,13 @@ export default function PedidoCliente() {
                             Total de productos: {getTotalCartItems()}
                         </Typography>
                         <Typography variant="h6" fontWeight="bold" color="primary">
-                            Total: Gs. {formatPrecio(calcularTotal())}
+                            Total: {formatPrecio(calcularTotal())}
                         </Typography>
                     </Box>
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
                     <Button onClick={() => setConfirmDialogOpen(false)} disabled={orderLoading}>
-                        Cancelar
+                        Cancelar 
                     </Button>
                     <Button
                         variant="contained"
