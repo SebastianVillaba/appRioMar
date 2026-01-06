@@ -31,7 +31,7 @@ jobs:
     - name: Copy files to VPS via SCP
       uses: appleboy/scp-action@master
       with:
-        host: ${{ secrets.VPS_HOST }}
+        host: ${{ secrets.VPS_IP }}
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
@@ -46,9 +46,9 @@ jobs:
     - name: Execute remote commands via SSH
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.VPS_HOST }}
+        host: ${{ secrets.VPS_IP }}
         username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
           # Ir a la carpeta del backend
