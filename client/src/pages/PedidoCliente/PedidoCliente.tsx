@@ -236,7 +236,7 @@ export default function PedidoCliente() {
         <Box
             sx={{
                 minHeight: '100vh',
-                background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%)',
+                background: 'linear-gradient(135deg, #eff3fdff 0%, #e8f0fe 100%)',
                 pb: 10,
             }}
         >
