@@ -23,7 +23,7 @@ jobs:
     - name: Build Frontend
       run: |
         cd client
-        npm install
+        npm install --legacy-peer-deps
         npm run build
       # Esto generará la carpeta 'client/dist' lista para subir
 
