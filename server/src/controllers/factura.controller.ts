@@ -16,10 +16,10 @@ export const obtenerDatosFactura = async (req: Request, res: Response): Promise<
       SELECT 
         cf.idFacturacion, cf.fechaAlta, cf.timbrado, cf.totalVenta, cf.totalDescuento,
         -- Sucursal
-        s.nombreFantasia as sucNombre, s.direccion as sucDireccion, 
-        s.tele1 as sucTele1, s.tele2 as sucTele2,
+        rtrim(s.nombreFantasia) as sucNombre, rtrim(s.direccion) as sucDireccion, 
+        rtrim(s.tele1) as sucTele1, rtrim(s.tele2) as sucTele2,
         -- Empresa (Persona Jurídica del sistema)
-        pj.ruc as empRuc, pj.dv as empDv,
+        rtrim(pj.ruc) as empRuc, pj.dv as empDv,
         ec.nombre as empContable,
         -- Cliente
         cli.nombre as cliNombre, cli.ruc as cliRuc,

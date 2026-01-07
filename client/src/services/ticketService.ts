@@ -9,7 +9,7 @@ class TicketService {
     private posY = 8 // Posición Y inicial
 
     // Posiciones de columnas para la tabla de items (optimizado para 80mm)
-    private readonly COL_CANT = 2      // Columna Cantidad
+    private readonly COL_CANT = 4      // Columna Cantidad
     private readonly COL_DESC = 12     // Columna Descripción  
     private readonly COL_PRECIO = 48   // Columna Precio Unitario
     private readonly COL_IVA = 62      // Columna % IVA
@@ -69,7 +69,7 @@ class TicketService {
     private calcularAlturaDocumento(datos: DatosFactura): number {
         let altura = 80; // Base para encabezado, info cliente, info venta
         altura += datos.items.length * 12; // Estimado por item
-        altura += 60; // Totales, IVA y pie de página
+        altura += 85; // Totales, IVA y pie de página
         return Math.max(altura, 150); // Mínimo 150mm
     }
 
@@ -99,7 +99,7 @@ class TicketService {
         doc.text(`RUC: ${datos.ruc}`, centroX, this.posY, { align: 'center' });
         this.posY += 5;
 
-        // Dirección
+        // Dirección    
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         const lineasDireccion = this.dividirTexto(datos.direccion, 45);
@@ -193,14 +193,14 @@ class TicketService {
         doc.setFont("helvetica", "bold");
         doc.text('Cond. Venta:', this.MARGEN_IZQ, this.posY);
         doc.setFont("helvetica", "normal");
-        doc.text(datos.formaVenta, this.MARGEN_IZQ + 24, this.posY);
+        doc.text(datos.formaVenta, this.MARGEN_IZQ + 18, this.posY);
         this.posY += 4;
 
         // Timbrado y Vigencia en la misma línea
         doc.setFont("helvetica", "bold");
         doc.text('Timbrado:', this.MARGEN_IZQ, this.posY);
         doc.setFont("helvetica", "normal");
-        doc.text(datos.timbrado, this.MARGEN_IZQ + 18, this.posY);
+        doc.text(datos.timbrado, this.MARGEN_IZQ + 14, this.posY);
         this.posY += 4;
 
         // Fecha Inicio Vigencia
@@ -217,16 +217,13 @@ class TicketService {
     private dibujarNumeroFactura(doc: jsPDF, datos: DatosFactura): void {
         const centroX = this.ANCHO_TICKET / 2;
 
-        // Tipo de factura
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.text(`FACTURA ${datos.tipoFactura}`, centroX, this.posY, { align: 'center' });
-        this.posY += 5;
+        this.posY += 2;
 
         // Número de factura - grande y destacado
         doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
         doc.text(`Nº ${datos.nroFactura}`, centroX, this.posY, { align: 'center' });
-        this.posY += 6;
+        this.posY += 4;
 
         this.dibujarLineaDoble(doc);
     }

@@ -176,10 +176,7 @@ export default function HomePage() {
       if (response.data.success) {
         const datosFactura = response.data.data;
         console.log("Estos son los datos de la factura: ", datosFactura);
-
-        // TODO: Aquí se puede integrar con el servicio de tickets/impresión
         generarTicket(datosFactura);
-
       }
     } catch (error) {
       console.error('Error al obtener datos de la factura:', error);
@@ -279,6 +276,8 @@ export default function HomePage() {
         fecha: new Date().toLocaleDateString('es-PY', { day: '2-digit', month: '2-digit', year: 'numeric' }),
         tipoPrecio: TIPO_PRECIO
       };
+
+      //await handleImprimirFactura(32);
 
       const response = await api.post('/producto/finalizarVenta', ventaData);
 
