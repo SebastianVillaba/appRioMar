@@ -9,19 +9,24 @@ export interface Venta {
     totalVenta: number;
     totalDescuento: number;
     idUsuarioAlta: number;
-    timbrado: string;
-    dsuc: string;
-    dcaja: string;
-    facturam: string;
     idVendedor: number;
     fecha: string;
     tipoPrecio: number;
-    imprimir: boolean;
-    imp: boolean;
-    unSoloItem: boolean;
 }
 
 export interface TipoVenta {
     id: number;
     nombre: string;
+}
+
+export interface AgregarTmpDetVenta {
+    idConfig: number;
+    idVendedor: number;
+    idItem: number;
+    idStock: number;
+    cantidad: number;
+    tipoPrecio: number;
+    tienePrecio: boolean;
+    precioNuevo: number;
+    cantidadComodato: number;
 }

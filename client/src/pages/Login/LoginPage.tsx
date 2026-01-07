@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Box, Button, Stack, TextField, Typography, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
+import { useUser } from '../../hooks/useUser';
 import axios from 'axios';
 import type { JSX } from 'react';
 
 export default function LoginPage(): JSX.Element {
   const navigate = useNavigate();
+  const { login } = useUser();
   const [usuario, setUsuario] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -22,20 +24,35 @@ export default function LoginPage(): JSX.Element {
         username: usuario,
         password: password
       });
-      
+
       console.log('Login response:', response);
-      
+
       if (response.success === true) {
         // Guardar token si existe
         if (response.token) {
           localStorage.setItem('authToken', response.token);
         }
-        
-        // Guardar información del usuario
+
+        // Guardar información del usuario en localStorage
         if (response.user) {
           localStorage.setItem('user', JSON.stringify(response.user));
         }
-        
+
+        // Guardar datos del vendedor en Redux (estado global)
+        if (response.vendedor && response.token) {
+          login({
+            idUsuario: response.vendedor.idUsuario,
+            idVendedor: response.vendedor.idVendedor,
+            nombreVendedor: response.vendedor.nombreVendedor,
+            idSucursal: response.vendedor.idSucursal,
+            idPersonaJur: response.vendedor.idPersonaJur,
+            dsuc: response.vendedor.dsuc,
+            dcaja: response.vendedor.dcaja,
+            factura: response.vendedor.factura,
+            token: response.token
+          });
+        }
+
         // Redirigir al home
         navigate('/');
       } else {
@@ -43,7 +60,7 @@ export default function LoginPage(): JSX.Element {
       }
     } catch (error) {
       console.error('Error during login:', error);
-      
+
       if (axios.isAxiosError(error)) {
         setError(error.response?.data?.message || 'Error al iniciar sesión');
       } else {
@@ -80,7 +97,7 @@ export default function LoginPage(): JSX.Element {
           disabled={loading}
         />
 
-        <TextField 
+        <TextField
           label="Contraseña"
           type="password"
           value={password}
@@ -92,9 +109,9 @@ export default function LoginPage(): JSX.Element {
           disabled={loading}
         />
 
-        <Button 
-          type="submit" 
-          variant="contained" 
+        <Button
+          type="submit"
+          variant="contained"
           size="large"
           disabled={loading}
         >

@@ -20,3 +20,15 @@ export interface Venta {
     imp: boolean;
     unSoloItem: boolean;
 }
+
+export interface agregarTmpDetVenta {
+    idConfig: number;
+    idVendedor: number;
+    idItem: number;
+    idStock: number;
+    cantidad: number;
+    tipoPrecio: number;
+    tienePrecio: boolean;
+    precioNuevo: number;
+    cantidadAcomodato: number;
+}

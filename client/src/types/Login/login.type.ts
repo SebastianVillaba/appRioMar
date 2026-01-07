@@ -3,6 +3,17 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface VendedorData {
+  idUsuario: number;
+  idVendedor: number;
+  nombreVendedor: string;
+  idSucursal: number;
+  idPersonaJur: number;
+  dsuc: string;
+  dcaja: string;
+  factura: string;
+}
+
 export interface LoginResponse {
   success: boolean;
   message?: string;
@@ -10,4 +21,5 @@ export interface LoginResponse {
   user?: {
     id: number;
   };
+  vendedor?: VendedorData;
 }
