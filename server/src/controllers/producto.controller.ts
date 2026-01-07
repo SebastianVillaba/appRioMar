@@ -36,7 +36,7 @@ export const getProducto = async (req: Request, res: Response): Promise<void> =>
             result.recordset[i].idStock = idStock.recordset[0].idStock;
         }
         //console.log(result.recordset);
-        
+
         res.status(200).json(result.recordset);
     } catch (error) {
         console.error("Error al obtener productos:", error);
@@ -48,7 +48,7 @@ export const agregarDetFacturacionTmp_producto = async (req: Request, res: Respo
     try {
         const {
             idConfig,
-            idVendedor, 
+            idVendedor,
             idItem,
             idStock,
             cantidad,
@@ -105,7 +105,7 @@ export const agregarDetFacturacionTmp_producto = async (req: Request, res: Respo
                     name: "cantidadComodato",
                     type: sql.Int(),
                     value: cantidadComodato
-                }                
+                }
             ]
         });
         res.status(200).json(result.recordset);
@@ -122,7 +122,7 @@ export const eliminarDetFacturacionTmp_producto = async (req: Request, res: Resp
             query: "delete from detFacturacionTmp where nro=" + nro + " and idVendedor=" + idVendedor + ""
         })
         res.status(200).json(result.recordset);
-    } catch (error:any) {
+    } catch (error: any) {
         console.error("Error al eliminar producto de la factura:", error);
         res.status(500).json({ message: "Error al eliminar producto de la factura" });
     }
@@ -152,7 +152,7 @@ export const consultaDetFacturacionTmp = async (req: Request, res: Response): Pr
             ]
         })
         res.status(200).json(result.recordset);
-    } catch (error:any) {
+    } catch (error: any) {
         console.error("Error al consultar detalle de la factura:", error);
         res.status(500).json({ message: "Error al consultar detalle de la factura" });
     }
@@ -175,10 +175,10 @@ export const finalizarVenta = async (req: Request, res: Response): Promise<void>
             fecha,
             tipoPrecio
         } = req.body as Venta;
-        
+
         const factura = await getFacturaActual(idConfig);
         //console.log(factura);
-        
+
         const result = await executeRequest({
             query: 'sp_guardarVenta',
             isStoredProcedure: true,
@@ -206,9 +206,26 @@ export const finalizarVenta = async (req: Request, res: Response): Promise<void>
                 { name: 'unSoloItem', type: sql.Bit(), value: 0 }
             ]
         })
-        res.status(200).json(result.recordset);
+
+        // Obtener el idFacturacion de la venta recién creada
+        const idFacturacionResult = await executeRequest({
+            query: `select MAX(idFacturacion) as idFacturacion from cabFacturacion where idConfig=@idConfig and idVendedor=@idVendedor`,
+            isStoredProcedure: false,
+            inputs: [
+                { name: 'idConfig', type: sql.Int(), value: idConfig },
+                { name: 'idVendedor', type: sql.Int(), value: idVendedor }
+            ]
+        });
+
+        const idFacturacion = idFacturacionResult.recordset[0]?.idFacturacion;
+
+        res.status(200).json({
+            success: true,
+            idFacturacion: idFacturacion,
+            data: result.recordset
+        });
     } catch (error) {
         console.error("Error al finalizar venta:", error);
-        res.status(500).json({ message: "Error al finalizar venta" });
+        res.status(500).json({ success: false, message: "Error al finalizar venta" });
     }
 }

@@ -24,6 +24,7 @@ import api from '../../services/api';
 import CantidadModal from '../../components/HomePage/CantidadModal';
 import { useUser } from '../../hooks/useUser';
 import type { Venta, TipoVenta, AgregarTmpDetVenta } from '../../types/venta.types';
+import { generarTicket, generarTicketEjemplo } from '../../services/ticketService.example';
 
 interface Cliente {
   idCliente: number;
@@ -33,12 +34,13 @@ interface Cliente {
 }
 
 interface Producto {
-  idItem: number;
-  nombreServicio: string;
+  idProducto: number;
+  nombreMercaderia: string;
+  nombreServicio?: string;
   codigo: string;
   precio: number;
-  cantidad: number;
-  idStock: number;
+  cantidad?: number;
+  idStock: number | null;
 }
 
 interface ItemCarrito {
@@ -168,16 +170,40 @@ export default function HomePage() {
     cargarCarritoDesdeDB();
   }, []);
 
+  const handleImprimirFactura = async (idFacturacion: number) => {
+    try {
+      const response = await api.get(`/factura/imprimir/${idFacturacion}`);
+      if (response.data.success) {
+        const datosFactura = response.data.data;
+        console.log("Estos son los datos de la factura: ", datosFactura);
+
+        // TODO: Aquí se puede integrar con el servicio de tickets/impresión
+        generarTicket(datosFactura);
+
+      }
+    } catch (error) {
+      console.error('Error al obtener datos de la factura:', error);
+    }
+  };
+
   // Agregar producto al carrito con cantidades (llama al backend)
   const handleAgregarAlCarrito = async (cantidad: number, cantidadAcomodato: number) => {
     if (!productoSeleccionado) return;
+
+    // Validar que el producto tenga stock disponible
+    if (!productoSeleccionado.idStock || productoSeleccionado.idStock <= 0) {
+      alert('Este producto no tiene stock existente o es menor a 0. No se puede agregar al detalle.');
+      setModalOpen(false);
+      setProductoSeleccionado(null);
+      return;
+    }
 
     try {
       const datosAgregar: AgregarTmpDetVenta = {
         idConfig: ID_CONFIG,
         idVendedor: ID_VENDEDOR,
-        idItem: productoSeleccionado.idProducto || productoSeleccionado.id,
-        idStock: productoSeleccionado.idStock || 0,
+        idItem: productoSeleccionado.idProducto,
+        idStock: productoSeleccionado.idStock,
         cantidad: cantidad,
         tipoPrecio: TIPO_PRECIO,
         tienePrecio: false,
@@ -186,7 +212,7 @@ export default function HomePage() {
       };
 
       console.log(datosAgregar);
-      
+
 
       await api.post('/producto/agregarDetFacturacionTmp_producto', datosAgregar);
 
@@ -254,17 +280,23 @@ export default function HomePage() {
         tipoPrecio: TIPO_PRECIO
       };
 
-      console.log(ventaData);
+      const response = await api.post('/producto/finalizarVenta', ventaData);
 
-      await api.post('/producto/finalizarVenta', ventaData);
+      if (response.data.success && response.data.idFacturacion) {
+        // Obtener datos de factura e imprimir
+        await handleImprimirFactura(response.data.idFacturacion);
 
-      alert(`Factura generada exitosamente!\nCliente: ${clienteSeleccionado.nombre}\nTotal: ${calcularTotal().toLocaleString()}`);
+        alert(`Factura generada exitosamente!\nCliente: ${clienteSeleccionado.nombre}\nTotal: ${calcularTotal().toLocaleString()}`);
 
-      // Limpiar todo
-      setClienteSeleccionado(null);
-      setClienteSearchTerm("");
-      setCarrito([]);
-      setTipoVenta(1); // Reset a Contado
+        // Limpiar todo
+        setClienteSeleccionado(null);
+        setClienteSearchTerm("");
+        setCarrito([]);
+        setTipoVenta(1); // Reset a Contado
+      } else {
+        alert('Error: No se pudo generar la factura correctamente.');
+      }
+
     } catch (err) {
       console.error('Error al finalizar venta:', err);
       alert('Error al generar la factura. Por favor, intente nuevamente.');
@@ -272,10 +304,6 @@ export default function HomePage() {
       setLoadingFacturacion(false);
     }
   };
-
-  useEffect(()=>{
-    console.log("Esto se encontró: ", productosEncontrados);
-  },[productosEncontrados])
 
   return (
     <Box sx={{
@@ -501,7 +529,7 @@ export default function HomePage() {
                     Resultados ({productosEncontrados.length}):
                   </Typography>
                   {productosEncontrados.map((producto) => (
-                    <Card key={producto.id} variant="outlined" sx={{ backgroundColor: '#f8f9fa' }}>
+                    <Card key={producto.idProducto} variant="outlined" sx={{ backgroundColor: '#f8f9fa' }}>
                       <CardContent sx={{ padding: '12px !important' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Box sx={{ flex: 1 }}>

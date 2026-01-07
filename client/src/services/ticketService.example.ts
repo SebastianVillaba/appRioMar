@@ -75,6 +75,15 @@ export async function generarTicketEjemplo() {
     }
 }
 
+export async function generarTicket(datos: DatosFactura) {
+    try {
+        await ticketService.generarTicket(datos);
+        console.log('Ticket generado exitosamente');
+    } catch (error) {
+        console.error('Error al generar el ticket:', error);
+    }
+}
+
 // Para usar en un componente React:
 // import { generarTicketEjemplo } from './services/ticketService.example';
 // 
