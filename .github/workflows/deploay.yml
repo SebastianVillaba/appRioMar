@@ -30,7 +30,14 @@ jobs:
         cd client
         npm install --legacy-peer-deps
         npm run build
-      # Esto generará la carpeta 'client/dist' lista para subir
+    
+    - name: Builda Backend
+      run: |
+          cd server
+          npm install              # Instala todo (incluyendo typescript)
+          npm run build            # Ejecuta 'tsc' y crea la carpeta 'dist'
+          # Opcional: Eliminar node_modules para no copiar miles de archivos innecesarios al VPS
+          rm -rf node_modules
 
     # 4. Copiar archivos al VPS (Frontend y Backend)
     - name: Copy files to VPS via SCP
@@ -64,6 +71,6 @@ jobs:
           
           # Reiniciar el servidor con PM2
           # Si tu proceso se llama "api-riomar", usa ese nombre
-          pm2 restart all || pm2 start index.js --name "api-riomar"
+          pm2 restart appRioMar-backend || pm2 start dist/index.js --name "appRioMar-backend"
           
           echo "¡Despliegue completado con éxito!"

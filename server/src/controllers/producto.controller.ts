@@ -35,7 +35,7 @@ export const getProducto = async (req: Request, res: Response): Promise<void> =>
             })
             result.recordset[i].idStock = idStock.recordset[0].idStock;
         }
-        //console.log(result.recordset);
+        console.log(result.recordset);
 
         res.status(200).json(result.recordset);
     } catch (error) {
