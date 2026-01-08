@@ -15,8 +15,6 @@ import {
 } from '@mui/material';
 import { useState, useEffect } from 'react';
 import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
 import PersonIcon from '@mui/icons-material/Person';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ReceiptIcon from '@mui/icons-material/Receipt';
@@ -24,7 +22,7 @@ import api from '../../services/api';
 import CantidadModal from '../../components/HomePage/CantidadModal';
 import { useUser } from '../../hooks/useUser';
 import type { Venta, TipoVenta, AgregarTmpDetVenta } from '../../types/venta.types';
-import { generarTicket, generarTicketEjemplo } from '../../services/ticketService.example';
+import { generarTicket } from '../../services/ticketService.example';
 
 interface Cliente {
   idCliente: number;
