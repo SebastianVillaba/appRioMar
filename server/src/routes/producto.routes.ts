@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { agregarDetFacturacionTmp_producto, consultaDetFacturacionTmp, finalizarVenta, getProducto, eliminarDetFacturacionTmp_producto, sumarCantidadDetFacturacionTmp_producto } from "../controllers/producto.controller";
+import { agregarDetFacturacionTmp_producto, consultaDetFacturacionTmp, finalizarVenta, getProducto, eliminarDetFacturacionTmp_producto } from "../controllers/producto.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 
 const router = Router();

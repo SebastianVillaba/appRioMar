@@ -47,7 +47,7 @@ export const obtenerDatosFactura = async (req: Request, res: Response): Promise<
 
     const resultCabecera = await executeRequest({
       query: queryCabecera,
-      inputs: [{ name: 'id', type: sql.Int, value: idVenta }]
+      inputs: [{ name: 'id', type: sql.Int(), value: idVenta }]
     });
 
     if (resultCabecera.recordset.length === 0) {
@@ -89,7 +89,7 @@ export const obtenerDatosFactura = async (req: Request, res: Response): Promise<
 
     const resultDetalles = await executeRequest({
       query: queryDetalles,
-      inputs: [{ name: 'id', type: sql.Int, value: idVenta }]
+      inputs: [{ name: 'id', type: sql.Int(), value: idVenta }]
     });
 
     // 3. CALCULAR TOTALES (Lógica del bucle VB)
@@ -123,31 +123,31 @@ export const obtenerDatosFactura = async (req: Request, res: Response): Promise<
 
     // 4. ARMAR RESPUESTA FINAL
     const response: DatosFactura = {
-        nombreFantasia: cab.sucNombre,
-        empresaContable: cab.empContable || '',
-        ruc: `${cab.empRuc}-${cab.empDv}`,
-        direccion: cab.sucDireccion,
-        telefono: `${cab.sucTele1}/${cab.sucTele2}`, // Lógica de concatenación VB
-        rubro: "Rubro por defecto", // Dato no presente en queries VB, ajustar según necesidad
-        fechaHora: cab.fechaAlta,
-        cliente: cab.cliNombre,
-        rucCliente: cab.cliRuc,
-        direccionCliente: "", // Faltaría agregar la dirección del cliente a la query si es necesaria
-        telefonoCliente: "", // Igual para el teléfono
-        vendedor: cab.vendNombre,
-        formaVenta: cab.tipoVenta,
-        tipoFactura: cab.esContado ? "CONTADO" : "CREDITO",
-        timbrado: cab.timbrado,
-        fechaInicioVigencia: cab.fechaDesde,
-        nroFactura: nroFactura,
-        items: items,
-        total: cab.totalVenta,
-        gravada10: totalGravada10,
-        gravada5: totalGravada5,
-        exenta: totalExenta,
-        iva10: totalIva10, // Nota: Revisa si tu lógica de negocio requiere el monto del IMPUESTO o el subtotal Gravado para visualización
-        iva5: totalIva5,
-        totalIva: (totalIva10 * 0.1) + (totalIva5 * 0.05) // Ejemplo de cálculo, ajustar según lógica exacta de la columna IVA10 del VB
+      nombreFantasia: cab.sucNombre,
+      empresaContable: cab.empContable || '',
+      ruc: `${cab.empRuc}-${cab.empDv}`,
+      direccion: cab.sucDireccion,
+      telefono: `${cab.sucTele1}/${cab.sucTele2}`, // Lógica de concatenación VB
+      rubro: "Rubro por defecto", // Dato no presente en queries VB, ajustar según necesidad
+      fechaHora: cab.fechaAlta,
+      cliente: cab.cliNombre,
+      rucCliente: cab.cliRuc,
+      direccionCliente: "", // Faltaría agregar la dirección del cliente a la query si es necesaria
+      telefonoCliente: "", // Igual para el teléfono
+      vendedor: cab.vendNombre,
+      formaVenta: cab.tipoVenta,
+      tipoFactura: cab.esContado ? "CONTADO" : "CREDITO",
+      timbrado: cab.timbrado,
+      fechaInicioVigencia: cab.fechaDesde,
+      nroFactura: nroFactura,
+      items: items,
+      total: cab.totalVenta,
+      gravada10: totalGravada10,
+      gravada5: totalGravada5,
+      exenta: totalExenta,
+      iva10: totalIva10, // Nota: Revisa si tu lógica de negocio requiere el monto del IMPUESTO o el subtotal Gravado para visualización
+      iva5: totalIva5,
+      totalIva: (totalIva10 * 0.1) + (totalIva5 * 0.05) // Ejemplo de cálculo, ajustar según lógica exacta de la columna IVA10 del VB
     };
 
     // Ajuste fino: En el VB, las columnas IVA10 e IVA5 en el SELECT parecen traer el SUBTOTAL gravado, no el impuesto en sí.
