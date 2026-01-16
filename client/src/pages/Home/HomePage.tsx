@@ -18,8 +18,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import PersonIcon from '@mui/icons-material/Person';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import api from '../../services/api';
 import CantidadModal from '../../components/HomePage/CantidadModal';
+import AgregarClienteModal from '../../components/HomePage/AgregarClienteModal';
 import { useUser } from '../../hooks/useUser';
 import type { Venta, TipoVenta, AgregarTmpDetVenta } from '../../types/venta.types';
 import { generarTicket } from '../../services/ticketService.example';
@@ -72,6 +74,9 @@ export default function HomePage() {
   // Estados para el modal de cantidad
   const [modalOpen, setModalOpen] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
+
+  // Estado para modal de agregar cliente
+  const [modalAgregarClienteOpen, setModalAgregarClienteOpen] = useState(false);
 
   // Estado para tipo de venta
   const [tipoVenta, setTipoVenta] = useState<number>(1); // Default: Contado
@@ -239,7 +244,7 @@ export default function HomePage() {
 
   // Calcular total
   const calcularTotal = () => {
-    return carrito.reduce((total, item) => total + (item.subtotal || item.precio * item.cantidad), 0);
+    return carrito.reduce((total, item) => total + (item.subtotal || item.precioDescuento * item.cantidad), 0);
   };
 
   // Finalizar facturación
@@ -320,11 +325,31 @@ export default function HomePage() {
         {/* SECCIÓN 1: BÚSQUEDA DE CLIENTE */}
         <Card elevation={3}>
           <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <PersonIcon color="primary" />
-              <Typography variant="h6" fontWeight="bold">
-                Cliente
-              </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonIcon color="primary" />
+                <Typography variant="h6" fontWeight="bold">
+                  Cliente
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<PersonAddIcon />}
+                onClick={() => setModalAgregarClienteOpen(true)}
+                sx={{
+                  background: 'linear-gradient(135deg, #D4A017 0%, #F4C430 100%)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                  padding: { xs: '4px 8px', sm: '6px 12px' },
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #C49515 0%, #E3B32E 100%)'
+                  }
+                }}
+              >
+                Nuevo
+              </Button>
             </Box>
 
             {!clienteSeleccionado ? (
@@ -358,48 +383,90 @@ export default function HomePage() {
                   </Typography>
                 )}
 
-                {/* Resultados de búsqueda de clientes */}
+                {/* Resultados de búsqueda de clientes - Contenedor con altura fija */}
                 {clientesEncontrados.length > 0 && (
                   <Box sx={{
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 1,
                     mt: 1,
+                    height: '200px',
+                    minHeight: '200px',
                     maxHeight: '200px',
                     overflowY: 'auto',
+                    overflowX: 'hidden',
                     border: '1px solid #e0e0e0',
                     borderRadius: 1,
-                    padding: 1
+                    padding: 1,
+                    backgroundColor: '#fafafa',
+                    position: 'relative',
+                    flexShrink: 0
                   }}>
-                    <Typography variant="subtitle2" color="text.secondary">
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{
+                        position: 'sticky',
+                        top: 0,
+                        backgroundColor: '#fafafa',
+                        zIndex: 1,
+                        paddingBottom: 0.5
+                      }}
+                    >
                       Resultados ({clientesEncontrados.length}):
                     </Typography>
-                    {clientesEncontrados.map((cliente) => (
-                      <Card key={cliente.idCliente} variant="outlined" sx={{ backgroundColor: '#f8f9fa' }}>
-                        <CardContent sx={{ padding: '12px !important' }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Box sx={{ flex: 1 }}>
-                              <Typography variant="body2" fontWeight="bold">
-                                {cliente.nombre}
-                              </Typography>
-                              {cliente.ruc && (
-                                <Typography variant="caption" color="text.secondary">
-                                  Cédula: {cliente.ruc}
+                    <Box sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1,
+                      flexGrow: 1
+                    }}>
+                      {clientesEncontrados.map((cliente) => (
+                        <Card
+                          key={cliente.idCliente}
+                          variant="outlined"
+                          sx={{
+                            backgroundColor: '#f8f9fa',
+                            flexShrink: 0
+                          }}
+                        >
+                          <CardContent sx={{ padding: '12px !important' }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="bold"
+                                  sx={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {cliente.nombre}
                                 </Typography>
-                              )}
+                                {cliente.ruc && (
+                                  <Typography variant="caption" color="text.secondary">
+                                    Cédula: {cliente.ruc}
+                                  </Typography>
+                                )}
+                              </Box>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={() => handleSeleccionarCliente(cliente)}
+                                sx={{
+                                  backgroundColor: '#28a745',
+                                  flexShrink: 0,
+                                  ml: 1
+                                }}
+                              >
+                                Seleccionar
+                              </Button>
                             </Box>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              onClick={() => handleSeleccionarCliente(cliente)}
-                              sx={{ backgroundColor: '#28a745' }}
-                            >
-                              Seleccionar
-                            </Button>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Box>
                   </Box>
                 )}
               </Box>
@@ -509,49 +576,91 @@ export default function HomePage() {
                 </Typography>
               )}
 
-              {/* Resultados de búsqueda de productos */}
+              {/* Resultados de búsqueda de productos - Contenedor con altura fija */}
               {productosEncontrados.length > 0 && (
                 <Box sx={{
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 1,
                   mt: 1,
-                  maxHeight: '300px',
+                  height: '250px',
+                  minHeight: '250px',
+                  maxHeight: '250px',
                   overflowY: 'auto',
+                  overflowX: 'hidden',
                   border: '1px solid #e0e0e0',
                   borderRadius: 1,
-                  padding: 1
+                  padding: 1,
+                  backgroundColor: '#fafafa',
+                  position: 'relative',
+                  flexShrink: 0
                 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{
+                      position: 'sticky',
+                      top: 0,
+                      backgroundColor: '#fafafa',
+                      zIndex: 1,
+                      paddingBottom: 0.5
+                    }}
+                  >
                     Resultados ({productosEncontrados.length}):
                   </Typography>
-                  {productosEncontrados.map((producto) => (
-                    <Card key={producto.idProducto} variant="outlined" sx={{ backgroundColor: '#f8f9fa' }}>
-                      <CardContent sx={{ padding: '12px !important' }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="body2" fontWeight="bold">
-                              {producto.nombreMercaderia}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Código: {producto.codigo}
-                            </Typography>
-                            <Typography variant="body2" color="primary" fontWeight="bold">
-                              {producto.precio.toLocaleString()}
-                            </Typography>
+                  <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1,
+                    flexGrow: 1
+                  }}>
+                    {productosEncontrados.map((producto) => (
+                      <Card
+                        key={producto.idProducto}
+                        variant="outlined"
+                        sx={{
+                          backgroundColor: '#f8f9fa',
+                          flexShrink: 0
+                        }}
+                      >
+                        <CardContent sx={{ padding: '12px !important' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography
+                                variant="body2"
+                                fontWeight="bold"
+                                sx={{
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {producto.nombreMercaderia}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Código: {producto.codigo}
+                              </Typography>
+                              <Typography variant="body2" color="primary" fontWeight="bold">
+                                {producto.precio.toLocaleString()}
+                              </Typography>
+                            </Box>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              onClick={() => handleSeleccionarProducto(producto)}
+                              sx={{
+                                backgroundColor: '#28a745',
+                                flexShrink: 0,
+                                ml: 1
+                              }}
+                            >
+                              Agregar
+                            </Button>
                           </Box>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={() => handleSeleccionarProducto(producto)}
-                            sx={{ backgroundColor: '#28a745' }}
-                          >
-                            Agregar
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Box>
                 </Box>
               )}
             </Box>
@@ -588,7 +697,7 @@ export default function HomePage() {
                         </Box>
 
                         <Typography variant="caption" color="text.secondary">
-                          Precio unitario: {item.precio.toLocaleString()}
+                          Precio unitario: {item.precioDescuento}
                         </Typography>
 
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -599,7 +708,7 @@ export default function HomePage() {
                           </Box>
 
                           <Typography variant="body1" fontWeight="bold" color="primary">
-                            {(item.subtotal || item.precio * item.cantidad).toLocaleString()}
+                            {(item.subtotal || item.precioDescuento * item.cantidad).toLocaleString()}
                           </Typography>
                         </Box>
                       </Box>
@@ -659,6 +768,20 @@ export default function HomePage() {
         }}
         onConfirm={handleAgregarAlCarrito}
         productoNombre={productoSeleccionado?.nombreMercaderia || ''}
+      />
+
+      {/* Modal de Agregar Cliente */}
+      <AgregarClienteModal
+        open={modalAgregarClienteOpen}
+        onClose={() => setModalAgregarClienteOpen(false)}
+        onGuardar={(clienteData) => {
+          // TODO: Implementar llamada al backend para guardar el cliente
+          console.log('Datos del nuevo cliente:', clienteData);
+          // Aquí puedes agregar la lógica para llamar a tu API
+          // Ejemplo: await api.post('/cliente/crear', clienteData);
+          alert('Cliente guardado exitosamente (pendiente conexión con backend)');
+          setModalAgregarClienteOpen(false);
+        }}
       />
     </Box>
   );
