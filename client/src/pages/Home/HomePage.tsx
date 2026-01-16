@@ -50,6 +50,7 @@ interface ItemCarrito {
   cantidad: number;
   cantidadComodato: number;
   precio: number;
+  precioDescuento: number;
   subtotal: number;
 }
 
@@ -774,13 +775,44 @@ export default function HomePage() {
       <AgregarClienteModal
         open={modalAgregarClienteOpen}
         onClose={() => setModalAgregarClienteOpen(false)}
-        onGuardar={(clienteData) => {
-          // TODO: Implementar llamada al backend para guardar el cliente
-          console.log('Datos del nuevo cliente:', clienteData);
-          // Aquí puedes agregar la lógica para llamar a tu API
-          // Ejemplo: await api.post('/cliente/crear', clienteData);
-          alert('Cliente guardado exitosamente (pendiente conexión con backend)');
-          setModalAgregarClienteOpen(false);
+        onGuardar={async (clienteData) => {
+          try {
+            const response = await api.post('/cliente/crearCliente', {
+              idUsuarioAlta: ID_VENDEDOR,
+              cliente: {
+                nombre: clienteData.nombre,
+                apellido: clienteData.apellido,
+                ruc: clienteData.rucCedula,
+                dv: clienteData.dv?.toString() || '',
+                direccion: clienteData.direccion || '',
+                referencia: clienteData.referencia || '',
+                fechaAniversario: clienteData.fechaAniversario || '',
+                celular: clienteData.celular || '',
+                telefono: clienteData.telefono || '',
+                email: clienteData.email || '',
+                idGrupoCliente: clienteData.grupo
+              }
+            });
+
+            console.log('Cliente creado:', response.data);
+
+            // Si el backend devuelve el cliente creado, lo seleccionamos automáticamente
+            if (response.data && response.data.length > 0) {
+              const nuevoCliente = response.data[0];
+              setClienteSeleccionado({
+                idCliente: nuevoCliente.idCliente,
+                nombre: `${clienteData.nombre} ${clienteData.apellido}`,
+                ruc: clienteData.rucCedula,
+                direccion: clienteData.direccion || ''
+              });
+            }
+
+            alert('Cliente guardado exitosamente!');
+            setModalAgregarClienteOpen(false);
+          } catch (error) {
+            console.error('Error al guardar cliente:', error);
+            alert('Error al guardar el cliente. Por favor, intente nuevamente.');
+          }
         }}
       />
     </Box>

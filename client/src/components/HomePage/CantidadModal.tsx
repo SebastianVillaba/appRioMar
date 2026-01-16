@@ -30,7 +30,6 @@ const CantidadModal = ({ open, onClose, onConfirm, productoNombre }: CantidadMod
         onClose();
     };
 
-    const label = "Añadir como regalo";
 
     return (
         <Modal
@@ -55,7 +54,7 @@ const CantidadModal = ({ open, onClose, onConfirm, productoNombre }: CantidadMod
                 <Typography variant="h6" fontWeight="bold" textAlign="center">
                     Ingrese las cantidades
                 </Typography>
-                
+
                 <Typography variant="body2" color="text.secondary" textAlign="center">
                     {productoNombre}
                 </Typography>
@@ -69,7 +68,7 @@ const CantidadModal = ({ open, onClose, onConfirm, productoNombre }: CantidadMod
                     onChange={(e) => setCantidad(Math.max(1, Number(e.target.value)))}
                     inputProps={{ min: 1 }}
                 />
-                
+
                 <TextField
                     type="number"
                     label="Cantidad Acomodato"
@@ -91,15 +90,15 @@ const CantidadModal = ({ open, onClose, onConfirm, productoNombre }: CantidadMod
                 />
 
                 <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                    <Button 
-                        variant="outlined" 
+                    <Button
+                        variant="outlined"
                         fullWidth
                         onClick={handleCancel}
                     >
                         Cancelar
                     </Button>
-                    <Button 
-                        variant="contained" 
+                    <Button
+                        variant="contained"
                         fullWidth
                         onClick={handleAgregar}
                         sx={{ backgroundColor: '#28a745' }}

@@ -7,11 +7,11 @@ interface Cliente {
     ruc: string;
     dv: string;
     direccion: string;
+    referencia: string;
     fechaAniversario: string;
     celular: string;
     telefono: string;
     email: string;
-    facebook: string;
     idGrupoCliente: number;
 }
 
@@ -34,7 +34,7 @@ export const getCliente = async (req: Request, res: Response): Promise<void> => 
                 }
             ]
         });
-        res.json(result.recordset);
+        res.json(result.recordset).status(200);
     } catch (error) {
         console.error("Error al obtener clientes:", error);
         res.status(500).json({ message: "Error al obtener clientes" });
@@ -44,6 +44,11 @@ export const getCliente = async (req: Request, res: Response): Promise<void> => 
 export const crearCliente = async (req: Request, res: Response): Promise<void> => {
     try {
        const { idUsuarioAlta, cliente } = req.body as agregarCliente;
+
+       if (!cliente ||!cliente.nombre || !cliente.apellido || !cliente.ruc || !cliente.dv || !cliente.direccion || !cliente.referencia || !cliente.fechaAniversario || !cliente.celular || !cliente.telefono || !cliente.email || !cliente.idGrupoCliente) {
+           res.status(400).json({ message: "Ningun campo puede ser null, revise los datos enviados!" });
+           return;
+       }
        const result = await executeRequest({
            query: "sp_agregarCliente",
            isStoredProcedure: true,
@@ -79,6 +84,11 @@ export const crearCliente = async (req: Request, res: Response): Promise<void> =
                     value: cliente.direccion
                 },
                 {
+                    name: "referencia",
+                    type: sql.VarChar(200),
+                    value: cliente.referencia
+                },
+                {
                     name: "fechaani",
                     type: sql.VarChar(15),
                     value: cliente.fechaAniversario
@@ -101,7 +111,7 @@ export const crearCliente = async (req: Request, res: Response): Promise<void> =
                 {
                     name: "facebook",
                     type: sql.VarChar(50),
-                    value: cliente.facebook
+                    value: ""
                 },
                 {
                     name: "idGrupoCliente",
@@ -119,5 +129,18 @@ export const crearCliente = async (req: Request, res: Response): Promise<void> =
     } catch (error) {
         console.error("Error al crear cliente:", error);
         res.status(500).json({ message: "Error al crear cliente" });
+    }
+}
+
+export const getGrupoCliente = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const result = await executeRequest({
+            query: "select * from [funGrupoClienteActivo] (1)",
+            isStoredProcedure: false,
+        });
+        res.json(result.recordset).status(200);
+    } catch (error) {
+        console.error("Error al obtener grupos de clientes:", error);
+        res.status(500).json({ message: "Error al obtener grupos de clientes" });
     }
 }

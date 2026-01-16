@@ -10,13 +10,13 @@ import {
     TextField,
     Typography,
     IconButton,
-    Divider,
-    Grid
+    Divider
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CloseIcon from '@mui/icons-material/Close';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import SaveIcon from '@mui/icons-material/Save';
+import api from "../../services/api";
 
 interface NuevoCliente {
     rucCedula: string;
@@ -24,6 +24,7 @@ interface NuevoCliente {
     nombre: string;
     apellido: string;
     direccion: string;
+    referencia: string;
     fechaAniversario: string;
     grupo: number;
     celular: string;
@@ -37,14 +38,6 @@ interface AgregarClienteModalProps {
     onGuardar: (cliente: NuevoCliente) => void;
 }
 
-// Opciones de grupo (puedes modificar según tu backend)
-const gruposCliente = [
-    { id: 1, nombre: 'General' },
-    { id: 2, nombre: 'VIP' },
-    { id: 3, nombre: 'Mayorista' },
-    { id: 4, nombre: 'Minorista' }
-];
-
 const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalProps) => {
     const [formData, setFormData] = useState<NuevoCliente>({
         rucCedula: '',
@@ -52,6 +45,7 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
         nombre: '',
         apellido: '',
         direccion: '',
+        referencia: '',
         fechaAniversario: '',
         grupo: 1,
         celular: '',
@@ -59,12 +53,27 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
         email: ''
     });
 
+    const [grupoCliente, setGrupoCliente] = useState<{ idGrupoCliente: number, nombreGrupoCliente: string }[]>([]);
+
     const [errors, setErrors] = useState<Partial<Record<keyof NuevoCliente, string>>>({});
 
+    useEffect(() => {
+        const getGrupoCliente = async () => {
+            const response = await api.get('/cliente/getGrupoCliente');
+            setGrupoCliente(response.data);
+        };
+        getGrupoCliente();
+    }, []);
+
     const handleChange = (field: keyof NuevoCliente, value: string | number) => {
+        // Convertir a mayúsculas si es string (excepto email)
+        const processedValue = typeof value === 'string' && field !== 'email'
+            ? value.toUpperCase()
+            : value;
+
         setFormData(prev => ({
             ...prev,
-            [field]: value
+            [field]: processedValue
         }));
         // Limpiar error al modificar el campo
         if (errors[field]) {
@@ -79,16 +88,22 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
         const nuevosErrores: Partial<Record<keyof NuevoCliente, string>> = {};
 
         if (!formData.rucCedula.trim()) {
-            nuevosErrores.rucCedula = 'RUC/Cédula es requerido';
+            nuevosErrores.rucCedula = 'El RUC o Cédula es obligatorio! Revise...';
         }
         if (!formData.nombre.trim()) {
-            nuevosErrores.nombre = 'Nombre es requerido';
+            nuevosErrores.nombre = 'El nombre es obligatorio! Revise...';
         }
         if (!formData.apellido.trim()) {
-            nuevosErrores.apellido = 'Apellido es requerido';
+            nuevosErrores.apellido = 'El apellido es obligatorio! Revise...';
+        }
+        if (!formData.direccion.trim()) {
+            nuevosErrores.direccion = 'La dirección es obligatoria! Revise...';
+        }
+        if (!formData.referencia.trim()) {
+            nuevosErrores.referencia = 'La referencias es obligatoria! Revise...';
         }
         if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            nuevosErrores.email = 'Email inválido';
+            nuevosErrores.email = 'El email es inválido! Revise...';
         }
 
         setErrors(nuevosErrores);
@@ -109,6 +124,7 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
             nombre: '',
             apellido: '',
             direccion: '',
+            referencia: '',
             fechaAniversario: '',
             grupo: 1,
             celular: '',
@@ -193,38 +209,35 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
                     >
                         Identificación
                     </Typography>
-                    
+
                     <Box
                         sx={{
                             display: 'flex',
-                            flexDirection: 'row'
-                        }} 
+                            flexDirection: 'row',
+                            gap: 2
+                        }}
                     >
-                        <Grid container spacing={2}>
-                            <Grid item size={9}>
-                                <TextField
-                                    fullWidth
-                                    size="small"
-                                    label="RUC / Cédula *"
-                                    value={formData.rucCedula}
-                                    onChange={(e) => handleChange('rucCedula', e.target.value)}
-                                    error={!!errors.rucCedula}
-                                    helperText={errors.rucCedula}
-                                    autoComplete="off"
-                                />
-                            </Grid>
-                            <Grid item size={3}>
-                                <TextField
-                                    size="small"
-                                    label="DV"
-                                    value={formData.dv}
-                                    onChange={(e) => handleChange('dv', e.target.value)}
-                                    error={!!errors.dv}
-                                    helperText={errors.dv}
-                                    autoComplete="off"
-                                />
-                            </Grid>
-                        </Grid>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            label="RUC / Cédula *"
+                            value={formData.rucCedula}
+                            onChange={(e) => handleChange('rucCedula', e.target.value)}
+                            error={!!errors.rucCedula}
+                            helperText={errors.rucCedula}
+                            autoComplete="off"
+                            sx={{ flex: 3 }}
+                        />
+                        <TextField
+                            size="small"
+                            label="DV"
+                            value={formData.dv}
+                            onChange={(e) => handleChange('dv', e.target.value)}
+                            error={!!errors.dv}
+                            helperText={errors.dv}
+                            autoComplete="off"
+                            sx={{ flex: 1 }}
+                        />
                     </Box>
 
                     <Box sx={{
@@ -278,6 +291,16 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
                         autoComplete="off"
                     />
 
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Referencia"
+                        value={formData.referencia}
+                        onChange={(e) => handleChange('referencia', e.target.value)}
+                        autoComplete="off"
+                    />
+
                     <Box sx={{
                         display: 'flex',
                         flexDirection: { xs: 'column', sm: 'row' },
@@ -299,9 +322,9 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
                                 label="Grupo"
                                 onChange={(e) => handleChange('grupo', e.target.value as number)}
                             >
-                                {gruposCliente.map((grupo) => (
-                                    <MenuItem key={grupo.id} value={grupo.id}>
-                                        {grupo.nombre}
+                                {grupoCliente.map((grupo) => (
+                                    <MenuItem key={grupo.idGrupoCliente} value={grupo.idGrupoCliente}>
+                                        {grupo.nombreGrupoCliente}
                                     </MenuItem>
                                 ))}
                             </Select>
