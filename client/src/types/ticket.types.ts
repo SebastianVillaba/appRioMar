@@ -7,6 +7,17 @@ export interface ItemFactura {
     subtotal: number;
 }
 
+// Interfaces para productos entregados a comodato
+export interface ItemComodato {
+    codigo: string;
+    mercaderia: string;
+    cantidad: number;
+}
+
+export interface DatosComodato {
+    items: ItemComodato[];
+}
+
 export interface DatosFactura {
     nombreFantasia: string;
     empresaContable: string;
@@ -33,4 +44,6 @@ export interface DatosFactura {
     iva10: number;
     iva5: number;
     totalIva: number;
+    // Datos opcionales de comodato (productos entregados a comodato)
+    comodato?: DatosComodato;
 }

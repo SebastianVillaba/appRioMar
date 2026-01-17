@@ -10,17 +10,20 @@ import {
     TextField,
     Typography,
     IconButton,
-    Divider
+    Divider,
+    CircularProgress
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import CloseIcon from '@mui/icons-material/Close';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import SaveIcon from '@mui/icons-material/Save';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 import api from "../../services/api";
 
 interface NuevoCliente {
     rucCedula: string;
-    dv: number | null;
+    dv: string;
     nombre: string;
     apellido: string;
     direccion: string;
@@ -30,6 +33,7 @@ interface NuevoCliente {
     celular: string;
     telefono: string;
     email: string;
+    geolocalizacion: string;
 }
 
 interface AgregarClienteModalProps {
@@ -41,7 +45,7 @@ interface AgregarClienteModalProps {
 const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalProps) => {
     const [formData, setFormData] = useState<NuevoCliente>({
         rucCedula: '',
-        dv: null,
+        dv: '',
         nombre: '',
         apellido: '',
         direccion: '',
@@ -50,8 +54,14 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
         grupo: 1,
         celular: '',
         telefono: '',
-        email: ''
+        email: '',
+        geolocalizacion: ''
     });
+
+    // Estados para geolocalización
+    const [loadingLocation, setLoadingLocation] = useState(false);
+    const [latitude, setLatitude] = useState<string>('');
+    const [longitude, setLongitude] = useState<string>('');
 
     const [grupoCliente, setGrupoCliente] = useState<{ idGrupoCliente: number, nombreGrupoCliente: string }[]>([]);
 
@@ -64,6 +74,21 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
         };
         getGrupoCliente();
     }, []);
+
+    // Actualizar geolocalizacion cuando cambian las coordenadas
+    useEffect(() => {
+        if (latitude && longitude) {
+            setFormData(prev => ({
+                ...prev,
+                geolocalizacion: `${latitude},${longitude}`
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                geolocalizacion: ''
+            }));
+        }
+    }, [latitude, longitude]);
 
     const handleChange = (field: keyof NuevoCliente, value: string | number) => {
         // Convertir a mayúsculas si es string (excepto email)
@@ -120,7 +145,7 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
     const handleLimpiarYCerrar = () => {
         setFormData({
             rucCedula: '',
-            dv: null,
+            dv: '',
             nombre: '',
             apellido: '',
             direccion: '',
@@ -129,10 +154,62 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
             grupo: 1,
             celular: '',
             telefono: '',
-            email: ''
+            email: '',
+            geolocalizacion: ''
         });
         setErrors({});
+        setLatitude('');
+        setLongitude('');
         onClose();
+    };
+
+    // Obtener ubicación actual del usuario
+    const handleGetCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            alert('La geolocalización no está soportada en este navegador.');
+            return;
+        }
+
+        setLoadingLocation(true);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude: lat, longitude: lng } = position.coords;
+                setLatitude(lat.toFixed(6));
+                setLongitude(lng.toFixed(6));
+                setLoadingLocation(false);
+            },
+            (error) => {
+                console.error('Error obteniendo ubicación:', error);
+                let errorMessage = 'Error al obtener la ubicación.';
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = 'Permiso de ubicación denegado. Por favor, habilite el acceso a la ubicación.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = 'Información de ubicación no disponible.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = 'Tiempo de espera agotado al obtener la ubicación.';
+                        break;
+                }
+                alert(errorMessage);
+                setLoadingLocation(false);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    };
+
+    // Generar URL del mapa estático para preview
+    const getMapPreviewUrl = () => {
+        if (latitude && longitude) {
+            return `https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(longitude) - 0.005}%2C${parseFloat(latitude) - 0.005}%2C${parseFloat(longitude) + 0.005}%2C${parseFloat(latitude) + 0.005}&layer=mapnik&marker=${latitude}%2C${longitude}`;
+        }
+        return null;
     };
 
     return (
@@ -248,14 +325,14 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
                         <TextField
                             fullWidth
                             size="small"
-                            label="Nombre *"
+                            label="Nombre y Apellido*"
                             value={formData.nombre}
                             onChange={(e) => handleChange('nombre', e.target.value)}
                             error={!!errors.nombre}
                             helperText={errors.nombre}
                             autoComplete="off"
                         />
-                        <TextField
+                        {/* <TextField
                             fullWidth
                             size="small"
                             label="Apellido *"
@@ -264,7 +341,7 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
                             error={!!errors.apellido}
                             helperText={errors.apellido}
                             autoComplete="off"
-                        />
+                        /> */}
                     </Box>
 
                     <Divider sx={{ my: 1 }} />
@@ -300,6 +377,109 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
                         onChange={(e) => handleChange('referencia', e.target.value)}
                         autoComplete="off"
                     />
+
+                    <Divider sx={{ my: 1 }} />
+
+                    {/* Sección: Geolocalización */}
+                    <Typography
+                        variant="subtitle2"
+                        color="text.secondary"
+                        sx={{
+                            textTransform: 'uppercase',
+                            letterSpacing: 1,
+                            fontSize: '0.75rem'
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <LocationOnIcon sx={{ fontSize: '1rem' }} />
+                            Ubicación del Cliente
+                        </Box>
+                    </Typography>
+
+                    {/* Botón de ubicación actual */}
+                    <Button
+                        variant="outlined"
+                        startIcon={loadingLocation ? <CircularProgress size={16} /> : <MyLocationIcon />}
+                        onClick={handleGetCurrentLocation}
+                        disabled={loadingLocation}
+                        fullWidth
+                        sx={{
+                            borderColor: '#1976d2',
+                            color: '#1976d2',
+                            py: 1.5,
+                            '&:hover': {
+                                borderColor: '#1565c0',
+                                backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                            }
+                        }}
+                    >
+                        {loadingLocation ? 'Obteniendo ubicación...' : 'Obtener Ubicación Actual'}
+                    </Button>
+
+                    {/* Campos de coordenadas */}
+                    <Box sx={{
+                        display: 'flex',
+                        gap: 2
+                    }}>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            label="Latitud"
+                            value={latitude}
+                            onChange={(e) => setLatitude(e.target.value)}
+                            placeholder="-25.263700"
+                            autoComplete="off"
+                        />
+                        <TextField
+                            fullWidth
+                            size="small"
+                            label="Longitud"
+                            value={longitude}
+                            onChange={(e) => setLongitude(e.target.value)}
+                            placeholder="-57.575900"
+                            autoComplete="off"
+                        />
+                    </Box>
+
+                    {/* Preview del mapa */}
+                    {latitude && longitude && (
+                        <Box sx={{
+                            width: '100%',
+                            height: '150px',
+                            borderRadius: 1,
+                            overflow: 'hidden',
+                            border: '1px solid #e0e0e0'
+                        }}>
+                            <iframe
+                                title="Ubicación del cliente"
+                                src={getMapPreviewUrl() || ''}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    border: 'none'
+                                }}
+                            />
+                        </Box>
+                    )}
+
+                    {/* Mostrar coordenadas seleccionadas */}
+                    {formData.geolocalizacion && (
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                backgroundColor: '#e8f5e9',
+                                padding: '8px 12px',
+                                borderRadius: 1,
+                                color: '#2e7d32'
+                            }}
+                        >
+                            <LocationOnIcon sx={{ fontSize: '1rem' }} />
+                            Coordenadas guardadas: {formData.geolocalizacion}
+                        </Typography>
+                    )}
 
                     <Box sx={{
                         display: 'flex',

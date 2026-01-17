@@ -13,6 +13,7 @@ interface Cliente {
     telefono: string;
     email: string;
     idGrupoCliente: number;
+    geologalizacion: string;
 }
 
 interface agregarCliente {
@@ -23,6 +24,7 @@ interface agregarCliente {
 export const getCliente = async (req: Request, res: Response): Promise<void> => {
     try {
         const { busqueda } = req.query;
+
         const result = await executeRequest({
             query: "sp_consultaCliente",
             isStoredProcedure: true,
@@ -43,25 +45,34 @@ export const getCliente = async (req: Request, res: Response): Promise<void> => 
 
 export const crearCliente = async (req: Request, res: Response): Promise<void> => {
     try {
-       const { idUsuarioAlta, cliente } = req.body as agregarCliente;
+        const { idUsuarioAlta, cliente } = req.body as agregarCliente;
 
-       if (!cliente ||!cliente.nombre || !cliente.apellido || !cliente.ruc || !cliente.dv || !cliente.direccion || !cliente.referencia || !cliente.fechaAniversario || !cliente.celular || !cliente.telefono || !cliente.email || !cliente.idGrupoCliente) {
-           res.status(400).json({ message: "Ningun campo puede ser null, revise los datos enviados!" });
-           return;
-       }
-       const result = await executeRequest({
-           query: "sp_agregarCliente",
-           isStoredProcedure: true,
-           inputs: [
+
+        // Formatear fecha de aniversario a formato año-día-mes
+        let fechaFormateada = '';
+        if (cliente.fechaAniversario) {
+            const fecha = new Date(cliente.fechaAniversario);
+            if (!isNaN(fecha.getTime())) {
+                const year = fecha.getFullYear();
+                const day = String(fecha.getDate()).padStart(2, '0');
+                const month = String(fecha.getMonth() + 1).padStart(2, '0');
+                fechaFormateada = `${day}-${month}-${year}`;
+            }
+        }
+
+        const result = await executeRequest({
+            query: "sp_insPersonaCedula",
+            isStoredProcedure: true,
+            inputs: [
                 {
-                   name: "idEntidad",
-                   type: sql.Int(),
-                   value: 1
+                    name: "idEntidad",
+                    type: sql.Int(),
+                    value: 1
                 },
                 {
-                   name: "nombre",
-                   type: sql.VarChar(40),
-                   value: cliente.nombre
+                    name: "nombre",
+                    type: sql.VarChar(40),
+                    value: cliente.nombre
                 },
                 {
                     name: "apellido",
@@ -91,20 +102,20 @@ export const crearCliente = async (req: Request, res: Response): Promise<void> =
                 {
                     name: "fechaani",
                     type: sql.VarChar(15),
-                    value: cliente.fechaAniversario
+                    value: fechaFormateada
                 },
                 {
-                    name: "celular",
+                    name: "celular1",
                     type: sql.VarChar(20),
                     value: cliente.celular
                 },
                 {
-                    name: "telefono",
+                    name: "tele1",
                     type: sql.VarChar(20),
                     value: cliente.telefono
                 },
                 {
-                    name: "email",
+                    name: "email1",
                     type: sql.VarChar(50),
                     value: cliente.email
                 },
@@ -119,13 +130,18 @@ export const crearCliente = async (req: Request, res: Response): Promise<void> =
                     value: cliente.idGrupoCliente
                 },
                 {
+                    name: "geolocalizacion",
+                    type: sql.VarChar(50),
+                    value: cliente.geologalizacion
+                },
+                {
                     name: "idUsuarioAlta",
                     type: sql.Int(),
                     value: idUsuarioAlta
                 }
-           ]
-       });
-       res.json(result.recordset).status(200);
+            ]
+        });
+        res.json(result.recordset).status(200);
     } catch (error) {
         console.error("Error al crear cliente:", error);
         res.status(500).json({ message: "Error al crear cliente" });

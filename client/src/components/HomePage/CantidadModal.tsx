@@ -1,4 +1,4 @@
-import { Box, Button, Checkbox, FormControlLabel, Modal, Paper, TextField, Typography } from "@mui/material";
+import { Box, Button, Modal, Paper, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 
 interface CantidadModalProps {
@@ -11,7 +11,7 @@ interface CantidadModalProps {
 const CantidadModal = ({ open, onClose, onConfirm, productoNombre }: CantidadModalProps) => {
     const [cantidad, setCantidad] = useState<number>(1);
     const [cantidadAcomodato, setCantidadAcomodato] = useState<number>(0);
-    const [regalo, setRegalo] = useState<boolean>(false);
+    // const [regalo, setRegalo] = useState<boolean>(false);
 
     const handleAgregar = () => {
         if (cantidad > 0) {
@@ -79,7 +79,7 @@ const CantidadModal = ({ open, onClose, onConfirm, productoNombre }: CantidadMod
                     inputProps={{ min: 0 }}
                 />
 
-                <FormControlLabel
+                {/* <FormControlLabel
                     label="Añadir como regalo"
                     control={
                         <Checkbox
@@ -87,7 +87,7 @@ const CantidadModal = ({ open, onClose, onConfirm, productoNombre }: CantidadMod
                             onChange={(e) => setRegalo(e.target.checked)}
                         />
                     }
-                />
+                /> */}
 
                 <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
                     <Button

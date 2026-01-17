@@ -58,6 +58,11 @@ class TicketService {
         // Pie de página
         this.dibujarPiePagina(doc);
 
+        // Sección de productos entregados a comodato (si existen)
+        if (datos.comodato && datos.comodato.items.length > 0) {
+            this.dibujarSeccionComodato(doc, datos);
+        }
+
         // Abrir el PDF en una nueva ventana para imprimir
         doc.autoPrint();
         window.open(doc.output('bloburl'), '_blank');
@@ -70,6 +75,14 @@ class TicketService {
         let altura = 80; // Base para encabezado, info cliente, info venta
         altura += datos.items.length * 12; // Estimado por item
         altura += 85; // Totales, IVA y pie de página
+
+        // Agregar altura para sección de comodato si existe
+        if (datos.comodato && datos.comodato.items.length > 0) {
+            altura += 80; // Encabezado de sección comodato
+            altura += datos.comodato.items.length * 10; // Por item de comodato
+            altura += 40; // Firma y aclaración
+        }
+
         return Math.max(altura, 150); // Mínimo 150mm
     }
 
@@ -378,6 +391,130 @@ class TicketService {
         doc.setFontSize(6);
         doc.text('Original: Cliente | Duplicado: Archivo Tributario', centroX, this.posY, { align: 'center' });
         this.posY += 8;
+    }
+
+    /**
+     * Dibuja la sección de productos entregados a comodato
+     * Esta sección se imprime continua después del pie de página de la factura
+     * Basado en el código VB hojaComodato_PrintPage
+     */
+    private dibujarSeccionComodato(doc: jsPDF, datos: DatosFactura): void {
+        if (!datos.comodato || datos.comodato.items.length === 0) return;
+
+        const centroX = this.ANCHO_TICKET / 2;
+
+        this.posY += 10;
+
+        // Línea separadora inicial
+        this.dibujarLinea(doc);
+
+        // Encabezado de empresa (mismo que la factura)
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text(this.truncarTexto(datos.nombreFantasia, 40), centroX, this.posY, { align: 'center' });
+        this.posY += 5;
+
+        // Empresa contable
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.text(this.truncarTexto(datos.empresaContable, 45), centroX, this.posY, { align: 'center' });
+        this.posY += 5;
+
+        // RUC
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(`RUC: ${datos.ruc}`, centroX, this.posY, { align: 'center' });
+        this.posY += 4;
+
+        this.dibujarLinea(doc);
+
+        // Dirección de sucursal
+        doc.setFontSize(8);
+        const lineasDireccion = this.dividirTexto(`Sucursal: ${datos.direccion}`, 45);
+        for (const linea of lineasDireccion) {
+            doc.text(linea, this.MARGEN_IZQ, this.posY);
+            this.posY += 4;
+        }
+
+        // Teléfono
+        doc.text(`Telef: ${datos.telefono}`, this.MARGEN_IZQ, this.posY);
+        this.posY += 5;
+
+        this.dibujarLinea(doc);
+
+        // Número de factura
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text(`Nro. Factura: ${datos.nroFactura}`, this.MARGEN_IZQ, this.posY);
+        this.posY += 5;
+
+        this.dibujarLinea(doc);
+
+        // Título de la sección - destacado
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text('PRODUCTOS ENTREGADOS A COMODATO', centroX, this.posY, { align: 'center' });
+        this.posY += 5;
+
+        this.dibujarLinea(doc);
+
+        // Fecha y hora
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        const fechaFormateada = this.formatearFecha(datos.fechaHora);
+        doc.text(`Fecha Hora: ${fechaFormateada}`, this.MARGEN_IZQ, this.posY);
+        this.posY += 4;
+
+        // Cliente
+        doc.text(`Cliente: ${datos.cliente}`, this.MARGEN_IZQ, this.posY);
+        this.posY += 4;
+
+        // RUC del cliente
+        doc.text(`RUC: ${datos.rucCliente}`, this.MARGEN_IZQ, this.posY);
+        this.posY += 4;
+
+        // Teléfono del cliente
+        if (datos.telefonoCliente) {
+            doc.text(`Telef.: ${datos.telefonoCliente}`, this.MARGEN_IZQ, this.posY);
+            this.posY += 4;
+        }
+
+        this.dibujarLinea(doc);
+
+        // Encabezado de tabla de productos
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.text('Codigo', this.MARGEN_IZQ + 2, this.posY);
+        doc.text('Mercaderia', this.MARGEN_IZQ + 25, this.posY);
+        this.posY += 4;
+        doc.text('[Cant]', this.MARGEN_IZQ + 2, this.posY);
+        this.posY += 4;
+
+        this.dibujarLinea(doc);
+
+        // Items de comodato
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+
+        for (const item of datos.comodato.items) {
+            // Código y mercadería
+            doc.text(`${item.codigo} ${item.mercaderia}`, this.MARGEN_IZQ + 2, this.posY);
+            this.posY += 4;
+            // Cantidad entre corchetes
+            doc.text(`[${item.cantidad}]`, this.MARGEN_IZQ + 2, this.posY);
+            this.posY += 5;
+        }
+
+        this.dibujarLinea(doc);
+
+        // Líneas para firma y aclaración
+        this.posY += 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text('Firma: _____________________', this.MARGEN_IZQ, this.posY);
+        this.posY += 8;
+        doc.text('Aclaración: _____________________', this.MARGEN_IZQ, this.posY);
+        this.posY += 10;
     }
 
     /**

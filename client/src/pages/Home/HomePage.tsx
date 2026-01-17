@@ -174,12 +174,27 @@ export default function HomePage() {
     cargarCarritoDesdeDB();
   }, []);
 
-  const handleImprimirFactura = async (idFacturacion: number) => {
+  const handleImprimirFactura = async (idFacturacion: number, tieneComodato: boolean) => {
     try {
       const response = await api.get(`/factura/imprimir/${idFacturacion}`);
       if (response.data.success) {
         const datosFactura = response.data.data;
         console.log("Estos son los datos de la factura: ", datosFactura);
+
+        // Si tiene comodato, obtener los datos adicionales
+        if (tieneComodato) {
+          try {
+            const comodatoResponse = await api.get(`/factura/comodato/${idFacturacion}`);
+            if (comodatoResponse.data.success) {
+              datosFactura.comodato = comodatoResponse.data.data;
+              console.log("Datos de comodato: ", datosFactura.comodato);
+            }
+          } catch (comodatoError) {
+            console.error('Error al obtener datos de comodato:', comodatoError);
+            // Continuar con la impresión sin comodato
+          }
+        }
+
         generarTicket(datosFactura);
       }
     } catch (error) {
@@ -286,8 +301,8 @@ export default function HomePage() {
       const response = await api.post('/producto/finalizarVenta', ventaData);
 
       if (response.data.success && response.data.idFacturacion) {
-        // Obtener datos de factura e imprimir
-        await handleImprimirFactura(response.data.idFacturacion);
+        // Obtener datos de factura e imprimir (incluye comodato si existe)
+        await handleImprimirFactura(response.data.idFacturacion, response.data.tieneComodato);
 
         alert(`Factura generada exitosamente!\nCliente: ${clienteSeleccionado.nombre}\nTotal: ${calcularTotal().toLocaleString()}`);
 
@@ -707,7 +722,7 @@ export default function HomePage() {
                               {item.cantidad}
                             </Typography>
                           </Box>
-
+                          
                           <Typography variant="body1" fontWeight="bold" color="primary">
                             {(item.subtotal || item.precioDescuento * item.cantidad).toLocaleString()}
                           </Typography>
@@ -777,20 +792,23 @@ export default function HomePage() {
         onClose={() => setModalAgregarClienteOpen(false)}
         onGuardar={async (clienteData) => {
           try {
+            console.log(clienteData);;
+
             const response = await api.post('/cliente/crearCliente', {
-              idUsuarioAlta: ID_VENDEDOR,
+              idUsuarioAlta: 1,
               cliente: {
                 nombre: clienteData.nombre,
                 apellido: clienteData.apellido,
                 ruc: clienteData.rucCedula,
-                dv: clienteData.dv?.toString() || '',
+                dv: clienteData.dv || '',
                 direccion: clienteData.direccion || '',
                 referencia: clienteData.referencia || '',
                 fechaAniversario: clienteData.fechaAniversario || '',
                 celular: clienteData.celular || '',
                 telefono: clienteData.telefono || '',
                 email: clienteData.email || '',
-                idGrupoCliente: clienteData.grupo
+                idGrupoCliente: clienteData.grupo,
+                geologalizacion: clienteData.geolocalizacion || ''
               }
             });
 

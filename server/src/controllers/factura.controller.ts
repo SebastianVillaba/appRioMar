@@ -162,3 +162,60 @@ export const obtenerDatosFactura = async (req: Request, res: Response): Promise<
     res.status(500).json({ success: false, message: 'Error interno' });
   }
 };
+
+/**
+ * Obtiene los productos entregados a comodato de una factura específica
+ * Basado en el código VB hojaComodato_PrintPage
+ */
+export const getComodato = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { idFacturacion } = req.params;
+
+    if (!idFacturacion) {
+      return res.status(400).json({ success: false, message: 'Falta el ID de la factura' });
+    }
+
+    // Consultar productos de comodato - basado en la query VB:
+    // select dv.cantidad, p.nombreProducto as Mercaderia, p.codigo
+    // from detFacturacionComodato dv 
+    // inner join stock s on dv.idStock=s.idStock 
+    // inner join producto p on p.idProducto=s.idProducto
+    const queryComodato = `
+      SELECT 
+        p.codigo,
+        p.nombreProducto as mercaderia,
+        dv.cantidad
+      FROM detFacturacionComodato dv 
+      INNER JOIN stock s ON dv.idStock = s.idStock 
+      INNER JOIN producto p ON p.idProducto = s.idProducto 
+      WHERE dv.idFacturacion = @idFacturacion
+    `;
+
+    const resultComodato = await executeRequest({
+      query: queryComodato,
+      inputs: [{ name: 'idFacturacion', type: sql.Int(), value: idFacturacion }]
+    });
+
+    if (resultComodato.recordset.length === 0) {
+      return res.json({ success: true, data: { items: [] } });
+    }
+
+    // Mapear los items de comodato
+    const items = resultComodato.recordset.map((row: any) => ({
+      codigo: row.codigo?.toString() || '',
+      mercaderia: row.mercaderia || '',
+      cantidad: row.cantidad || 0
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        items
+      }
+    });
+
+  } catch (error) {
+    console.error('Error al obtener datos de comodato:', error);
+    res.status(500).json({ success: false, message: 'Error interno' });
+  }
+};
