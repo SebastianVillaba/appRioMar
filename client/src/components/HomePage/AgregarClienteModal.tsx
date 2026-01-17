@@ -118,15 +118,7 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
         if (!formData.nombre.trim()) {
             nuevosErrores.nombre = 'El nombre es obligatorio! Revise...';
         }
-        if (!formData.apellido.trim()) {
-            nuevosErrores.apellido = 'El apellido es obligatorio! Revise...';
-        }
-        if (!formData.direccion.trim()) {
-            nuevosErrores.direccion = 'La dirección es obligatoria! Revise...';
-        }
-        if (!formData.referencia.trim()) {
-            nuevosErrores.referencia = 'La referencias es obligatoria! Revise...';
-        }
+        // Apellido ya no es requerido, ahora se usa solo el campo nombre
         if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             nuevosErrores.email = 'El email es inválido! Revise...';
         }
@@ -137,6 +129,8 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
 
     const handleGuardar = () => {
         if (validarFormulario()) {
+            console.log("intento guardar con estos datos:", formData);
+
             onGuardar(formData);
             handleLimpiarYCerrar();
         }

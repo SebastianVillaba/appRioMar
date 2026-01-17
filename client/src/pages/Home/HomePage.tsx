@@ -717,12 +717,15 @@ export default function HomePage() {
                         </Typography>
 
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body1" fontWeight="bold" sx={{ minWidth: '40px', textAlign: 'center' }}>
-                              {item.cantidad}
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, flexDirection: 'column' }}>
+                            <Typography variant="body2" fontWeight="bold" sx={{ minWidth: '40px', textAlign: 'center' }}>
+                              Facturacion: {item.cantidad}
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ minWidth: '40px', textAlign: 'center' }}>
+                              Comodato: {item.cantidadComodato}
                             </Typography>
                           </Box>
-                          
+
                           <Typography variant="body1" fontWeight="bold" color="primary">
                             {(item.subtotal || item.precioDescuento * item.cantidad).toLocaleString()}
                           </Typography>
