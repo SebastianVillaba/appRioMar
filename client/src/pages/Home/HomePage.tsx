@@ -101,7 +101,6 @@ export default function HomePage() {
     try {
       const response = await api.get(`/cliente/getCliente?busqueda=${encodeURIComponent(clienteSearchTerm)}`);
       const clientes = response.data;
-      console.log(clientes);
       setClientesEncontrados(clientes);
     } catch (err) {
       console.error('Error al buscar el cliente:', err);
@@ -133,7 +132,6 @@ export default function HomePage() {
     try {
       const response = await api.get(`/producto/getProducto?busqueda=${encodeURIComponent(productoSearchTerm)}`);
       const productos = response.data;
-      console.log(productos);
       setProductosEncontrados(productos);
     } catch (err) {
       console.error('Error al buscar el producto:', err);
@@ -162,7 +160,6 @@ export default function HomePage() {
   const cargarCarritoDesdeDB = async () => {
     try {
       const response = await api.get(`/producto/consultaDetFacturacionTmp?idConfig=${ID_CONFIG}&idVendedor=${ID_VENDEDOR}`);
-      console.log(response.data);
       setCarrito(response.data);
     } catch (err) {
       console.error('Error al cargar carrito:', err);
@@ -179,7 +176,6 @@ export default function HomePage() {
       const response = await api.get(`/factura/imprimir/${idFacturacion}`);
       if (response.data.success) {
         const datosFactura = response.data.data;
-        console.log("Estos son los datos de la factura: ", datosFactura);
 
         // Si tiene comodato, obtener los datos adicionales
         if (tieneComodato) {

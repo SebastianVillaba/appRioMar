@@ -59,7 +59,7 @@ export const obtenerDatosFactura = async (req: Request, res: Response): Promise<
     // 2. OBTENER DETALLES (Items)
     // Esta es la query exacta del VB (con el UNION) adaptada
     const queryDetalles = `
-      select dv.cantidad, p.nombreProducto as Mercaderia, p.codigo, dv.precio, 
+      select dv.idDetFacturacionProducto,dv.cantidad, p.nombreProducto as Mercaderia, p.codigo, dv.precio, 
              dv.precioDescuento, i.porcentajeImpuesto, dv.subtotal,
       (case when dv.idImpuesto=1 then dv.subtotal else 0 end) as exenta,
       (case when dv.idImpuesto=3 then (dv.subtotal-(dv.subtotal/i.factorImpuesto)) else 0 end) as gravada10,
@@ -74,7 +74,7 @@ export const obtenerDatosFactura = async (req: Request, res: Response): Promise<
       
       UNION
       
-      select dv.cantidad, s.nombreServicio as Mercaderia, '' as codigo, dv.precio, 
+      select dv.idDetFacturacion,dv.cantidad, s.nombreServicio as Mercaderia, '' as codigo, dv.precio, 
              dv.precio, i.porcentajeImpuesto, dv.subtotal,
       (case when dv.idImpuesto=1 then dv.subtotal else 0 end) as exenta,
       (case when dv.idImpuesto=3 then (dv.subtotal-(dv.subtotal/i.factorImpuesto)) else 0 end) as gravada10,
