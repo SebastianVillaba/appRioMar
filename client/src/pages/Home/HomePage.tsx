@@ -13,7 +13,7 @@ import {
   FormControl,
   InputLabel
 } from '@mui/material';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonIcon from '@mui/icons-material/Person';
@@ -175,9 +175,13 @@ export default function HomePage() {
   const ID_VENDEDOR = idVendedor;
   const TIPO_PRECIO = 1;
 
+  // Ref para evitar doble alerta por StrictMode de React
+  const hasShownSessionAlert = useRef(false);
+
   // Validar idVendedor - si no existe, forzar logout
   useEffect(() => {
-    if (!idVendedor) {
+    if (!idVendedor && !hasShownSessionAlert.current) {
+      hasShownSessionAlert.current = true;
       alert('Sesión expirada o no válida. Por favor, inicie sesión nuevamente.');
       logout();
       navigate('/login');
