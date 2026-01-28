@@ -14,6 +14,7 @@ import {
   InputLabel
 } from '@mui/material';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonIcon from '@mui/icons-material/Person';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
@@ -31,6 +32,7 @@ interface Cliente {
   nombre: string;
   ruc?: string;
   direccion: string;
+  idGrupoCliente?: number;
 }
 
 interface Producto {
@@ -111,11 +113,26 @@ export default function HomePage() {
     }
   };
 
-  // Seleccionar cliente
-  const handleSeleccionarCliente = (cliente: Cliente) => {
+  // Seleccionar cliente y actualizar precios según grupo
+  const handleSeleccionarCliente = async (cliente: Cliente) => {
     setClienteSeleccionado(cliente);
     setClientesEncontrados([]);
     setClienteSearchTerm("");
+
+    // Si el cliente tiene grupo, actualizar precios del carrito
+    if (cliente.idGrupoCliente && ID_VENDEDOR) {
+      try {
+        await api.post('/cliente/actualizarPrecioCliente', {
+          idConfig: ID_CONFIG,
+          idVendedor: ID_VENDEDOR,
+          idGrupoCliente: cliente.idGrupoCliente
+        });
+        // Recargar carrito con los nuevos precios
+        await cargarCarritoDesdeDB();
+      } catch (err) {
+        console.error('Error al actualizar precios del cliente:', err);
+      }
+    }
   };
 
   // Búsqueda de Productos
@@ -149,15 +166,27 @@ export default function HomePage() {
   };
 
   // Datos del usuario desde el estado global
-  const { idVendedor } = useUser();
+  const { idVendedor, logout } = useUser();
+  const navigate = useNavigate();
 
   // Constantes de configuración
   const ID_CONFIG = 3;
-  const ID_VENDEDOR = idVendedor || 1; // Usa el del estado global o 1 como fallback
+  // IMPORTANTE: No usar fallback, si no hay idVendedor se forzará logout
+  const ID_VENDEDOR = idVendedor;
   const TIPO_PRECIO = 1;
+
+  // Validar idVendedor - si no existe, forzar logout
+  useEffect(() => {
+    if (!idVendedor) {
+      alert('Sesión expirada o no válida. Por favor, inicie sesión nuevamente.');
+      logout();
+      navigate('/login');
+    }
+  }, [idVendedor, logout, navigate]);
 
   // Cargar carrito desde la base de datos
   const cargarCarritoDesdeDB = async () => {
+    if (!ID_VENDEDOR) return; // No cargar si no hay vendedor
     try {
       const response = await api.get(`/producto/consultaDetFacturacionTmp?idConfig=${ID_CONFIG}&idVendedor=${ID_VENDEDOR}`);
       setCarrito(response.data);
@@ -168,8 +197,10 @@ export default function HomePage() {
 
   // Cargar carrito al montar el componente
   useEffect(() => {
-    cargarCarritoDesdeDB();
-  }, []);
+    if (idVendedor) {
+      cargarCarritoDesdeDB();
+    }
+  }, [idVendedor]);
 
   const handleImprimirFactura = async (idFacturacion: number, tieneComodato: boolean) => {
     try {
@@ -202,6 +233,14 @@ export default function HomePage() {
   const handleAgregarAlCarrito = async (cantidad: number, cantidadAcomodato: number) => {
     if (!productoSeleccionado) return;
 
+    // Validar sesión del vendedor
+    if (!ID_VENDEDOR) {
+      alert('Sesión expirada. Por favor, inicie sesión nuevamente.');
+      logout();
+      navigate('/login');
+      return;
+    }
+
     // Validar que el producto tenga stock disponible
     if (!productoSeleccionado.idStock || productoSeleccionado.idStock <= 0) {
       alert('Este producto no tiene stock existente o es menor a 0. No se puede agregar al detalle.');
@@ -227,6 +266,15 @@ export default function HomePage() {
 
 
       await api.post('/producto/agregarDetFacturacionTmp_producto', datosAgregar);
+
+      // Si hay cliente seleccionado con grupo, actualizar precios
+      if (clienteSeleccionado?.idGrupoCliente && ID_VENDEDOR) {
+        await api.post('/cliente/actualizarPrecioCliente', {
+          idConfig: ID_CONFIG,
+          idVendedor: ID_VENDEDOR,
+          idGrupoCliente: clienteSeleccionado.idGrupoCliente
+        });
+      }
 
       // Recargar el carrito desde la base de datos
       await cargarCarritoDesdeDB();
@@ -261,6 +309,14 @@ export default function HomePage() {
 
   // Finalizar facturación
   const handleFinalizarFacturacion = async () => {
+    // Validar sesión del vendedor
+    if (!ID_VENDEDOR) {
+      alert('Sesión expirada. Por favor, inicie sesión nuevamente.');
+      logout();
+      navigate('/login');
+      return;
+    }
+
     if (!clienteSeleccionado) {
       alert("Por favor, seleccione un cliente.");
       return;
@@ -793,16 +849,19 @@ export default function HomePage() {
           try {
             console.log(clienteData);;
 
+            // Aplicar valores por defecto para campos opcionales
+            const fechaAniversarioPorDefecto = clienteData.fechaAniversario || '1990-01-01';
+
             const response = await api.post('/cliente/crearCliente', {
               idUsuarioAlta: 1,
               cliente: {
                 nombre: clienteData.nombre,
-                apellido: clienteData.apellido,
+                apellido: clienteData.apellido || '',
                 ruc: clienteData.rucCedula,
                 dv: clienteData.dv || '',
                 direccion: clienteData.direccion || '',
                 referencia: clienteData.referencia || '',
-                fechaAniversario: clienteData.fechaAniversario || '',
+                fechaAniversario: fechaAniversarioPorDefecto,
                 celular: clienteData.celular || '',
                 telefono: clienteData.telefono || '',
                 email: clienteData.email || '',
@@ -811,14 +870,20 @@ export default function HomePage() {
               }
             });
 
+            // Verificar si el backend indica error
+            if (response.data.success === false) {
+              alert(`Error al guardar cliente: ${response.data.message}`);
+              return; // No cerrar el modal
+            }
+
             console.log('Cliente creado:', response.data);
 
             // Si el backend devuelve el cliente creado, lo seleccionamos automáticamente
-            if (response.data && response.data.length > 0) {
-              const nuevoCliente = response.data[0];
+            if (response.data.data && response.data.data.length > 0) {
+              const nuevoCliente = response.data.data[0];
               setClienteSeleccionado({
                 idCliente: nuevoCliente.idCliente,
-                nombre: `${clienteData.nombre} ${clienteData.apellido}`,
+                nombre: `${clienteData.nombre} ${clienteData.apellido || ''}`.trim(),
                 ruc: clienteData.rucCedula,
                 direccion: clienteData.direccion || ''
               });
@@ -826,9 +891,17 @@ export default function HomePage() {
 
             alert('Cliente guardado exitosamente!');
             setModalAgregarClienteOpen(false);
-          } catch (error) {
+          } catch (error: unknown) {
             console.error('Error al guardar cliente:', error);
-            alert('Error al guardar el cliente. Por favor, intente nuevamente.');
+
+            // Intentar extraer el mensaje de error del backend
+            const axiosError = error as { response?: { data?: { message?: string; success?: boolean } } };
+            if (axiosError.response?.data?.message) {
+              alert(`Error: ${axiosError.response.data.message}`);
+            } else {
+              alert('Error al guardar el cliente. Por favor, intente nuevamente.');
+            }
+            // No cerrar el modal para que el usuario pueda corregir
           }
         }}
       />

@@ -8,7 +8,7 @@ export const getProducto = async (req: Request, res: Response): Promise<void> =>
     try {
         const { busqueda } = req.query;
         const result = await executeRequest({
-            query: "sp_consultaProducto",
+            query: "sp_consultaProducto_web",
             isStoredProcedure: true,
             inputs: [
                 {

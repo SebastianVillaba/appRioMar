@@ -26,7 +26,7 @@ export const getCliente = async (req: Request, res: Response): Promise<void> => 
         const { busqueda } = req.query;
 
         const result = await executeRequest({
-            query: "sp_consultaCliente",
+            query: "sp_consultaCliente_web",
             isStoredProcedure: true,
             inputs: [
                 {
@@ -36,6 +36,9 @@ export const getCliente = async (req: Request, res: Response): Promise<void> => 
                 }
             ]
         });
+
+        console.log(result);
+        
         res.json(result.recordset).status(200);
     } catch (error) {
         console.error("Error al obtener clientes:", error);
@@ -141,22 +144,66 @@ export const crearCliente = async (req: Request, res: Response): Promise<void> =
                 }
             ]
         });
-        res.json(result.recordset).status(200);
-    } catch (error) {
+        res.status(200).json({ success: true, data: result.recordset });
+    } catch (error: unknown) {
         console.error("Error al crear cliente:", error);
-        res.status(500).json({ message: "Error al crear cliente" });
+
+        // Extraer mensaje de error del SP si existe
+        const sqlError = error as { message?: string; number?: number; originalError?: { message?: string } };
+        let errorMessage = "Error al crear cliente";
+
+        // Los errores RAISERROR de SQL Server vienen en el mensaje
+        if (sqlError.message) {
+            // El mensaje del SP viene directamente
+            errorMessage = sqlError.message;
+        } else if (sqlError.originalError?.message) {
+            errorMessage = sqlError.originalError.message;
+        }
+
+        res.status(400).json({ success: false, message: errorMessage });
     }
 }
 
 export const getGrupoCliente = async (req: Request, res: Response): Promise<void> => {
     try {
         const result = await executeRequest({
-            query: "select * from [funGrupoClienteActivo] (1)",
+            query: "select * from grupoCliente where idGrupoCliente=1",
             isStoredProcedure: false,
         });
         res.json(result.recordset).status(200);
     } catch (error) {
         console.error("Error al obtener grupos de clientes:", error);
-        res.status(500).json({ message: "Error al obtener grupos de clientes" });
+        res.status(500).json({ success: false, message: "Error al obtener grupos de clientes" });
+    }
+}
+
+export const actualizarPrecioCliente = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { idConfig, idVendedor, idGrupoCliente } = req.body;
+        const result = await executeRequest({
+            query: "sp_updDetFacturacionTmp_web",
+            isStoredProcedure: true,
+            inputs: [
+                {
+                    name: "idConfig",
+                    type: sql.Int(),
+                    value: idConfig
+                },
+                {
+                    name: "idVendedor",
+                    type: sql.Int(),
+                    value: idVendedor
+                },
+                {
+                    name: "idGrupoCliente",
+                    type: sql.Int(),
+                    value: idGrupoCliente
+                }
+            ]
+        });
+        res.status(200).json(result.recordset);
+    } catch (error) {
+        console.error("Error al actualizar precio de cliente:", error);
+        res.status(500).json({ success: false, message: "Error al actualizar precio de cliente" });
     }
 }

@@ -118,7 +118,12 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
         if (!formData.nombre.trim()) {
             nuevosErrores.nombre = 'El nombre es obligatorio! Revise...';
         }
-        // Apellido ya no es requerido, ahora se usa solo el campo nombre
+        if (!formData.direccion.trim()) {
+            nuevosErrores.direccion = 'La dirección es obligatoria! Revise...';
+        }
+        if (!formData.geolocalizacion.trim()) {
+            nuevosErrores.geolocalizacion = 'La geolocalización es obligatoria! Debe obtener la ubicación del cliente.';
+        }
         if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             nuevosErrores.email = 'El email es inválido! Revise...';
         }
@@ -356,9 +361,11 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
                     <TextField
                         fullWidth
                         size="small"
-                        label="Dirección"
+                        label="Dirección *"
                         value={formData.direccion}
                         onChange={(e) => handleChange('direccion', e.target.value)}
+                        error={!!errors.direccion}
+                        helperText={errors.direccion}
                         autoComplete="off"
                     />
 
@@ -386,7 +393,7 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
                     >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <LocationOnIcon sx={{ fontSize: '1rem' }} />
-                            Ubicación del Cliente
+                            Ubicación del Cliente *
                         </Box>
                     </Typography>
 
@@ -409,6 +416,13 @@ const AgregarClienteModal = ({ open, onClose, onGuardar }: AgregarClienteModalPr
                     >
                         {loadingLocation ? 'Obteniendo ubicación...' : 'Obtener Ubicación Actual'}
                     </Button>
+
+                    {/* Mensaje de error de geolocalización */}
+                    {errors.geolocalizacion && (
+                        <Typography color="error" variant="body2" sx={{ mt: -1 }}>
+                            {errors.geolocalizacion}
+                        </Typography>
+                    )}
 
                     {/* Campos de coordenadas */}
                     <Box sx={{
