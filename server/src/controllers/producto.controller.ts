@@ -206,7 +206,7 @@ export const finalizarVenta = async (req: Request, res: Response): Promise<void>
                 { name: 'unSoloItem', type: sql.Bit(), value: 0 }
             ]
         })
-
+        
         // Obtener el idFacturacion de la venta recién creada
         const idFacturacionResult = await executeRequest({
             query: `select MAX(idFacturacion) as idFacturacion from cabFacturacion where idConfig=@idConfig and idVendedor=@idVendedor`,
@@ -223,14 +223,14 @@ export const finalizarVenta = async (req: Request, res: Response): Promise<void>
             query: `select idFacturacion from detFacturacionComodato where idFacturacion=${idFacturacion}`,
             isStoredProcedure: false
         })
-
+        
         res.status(200).json({
             success: true,
             idFacturacion: idFacturacion,
             data: result.recordset,
             tieneComodato: tieneComodato.recordset.length > 0
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error al finalizar venta:", error);
         res.status(500).json({ success: false, message: "Error al finalizar venta" });
     }
