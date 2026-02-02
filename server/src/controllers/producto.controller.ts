@@ -117,11 +117,24 @@ export const agregarDetFacturacionTmp_producto = async (req: Request, res: Respo
 
 export const eliminarDetFacturacionTmp_producto = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { nro, idVendedor } = req.query;
-        const result = await executeRequest({
-            query: "delete from detFacturacionTmp where nro=" + nro + " and idVendedor=" + idVendedor + ""
+        const { nro, idVendedor, idConfig } = req.query;
+        await executeRequest({
+            query: "delete from detFacturacionTmp where nro=" + nro + " and idVendedor=" + idVendedor + "and idConfig=" + idConfig
         })
-        res.status(200).json(result.recordset);
+        res.status(200).json({ message: "Producto eliminado de la factura" });
+    } catch (error: any) {
+        console.error("Error al eliminar producto de la factura:", error);
+        res.status(500).json({ message: "Error al eliminar producto de la factura" });
+    }
+}
+
+export const eliminarDetFacturacionTmp_producto_comodato = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { nro, idVendedor, idConfig } = req.query;
+        await executeRequest({
+            query: "delete from detFacturacionComodato where nro=" + nro + " and idVendedor=" + idVendedor + "and idConfig=" + idConfig
+        })
+        res.status(200).json({ message: "Producto eliminado de la factura" });
     } catch (error: any) {
         console.error("Error al eliminar producto de la factura:", error);
         res.status(500).json({ message: "Error al eliminar producto de la factura" });
@@ -233,5 +246,18 @@ export const finalizarVenta = async (req: Request, res: Response): Promise<void>
     } catch (error: any) {
         console.error("Error al finalizar venta:", error);
         res.status(500).json({ success: false, message: "Error al finalizar venta" });
+    }
+}
+
+export const consultaUltimasVentas = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { idVendedor } = req.query;
+        const result = await executeRequest({
+            query: `select top 5 * from cabFacturacion where idVendedor=${idVendedor} order by idFacturacion desc`
+        })
+        res.status(200).json(result.recordset);
+    } catch (error: any) {
+        console.error("Error al consultar ultimas ventas:", error);
+        res.status(500).json({ message: "Error al consultar ultimas ventas" });
     }
 }

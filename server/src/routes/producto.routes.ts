@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { agregarDetFacturacionTmp_producto, consultaDetFacturacionTmp, finalizarVenta, getProducto, eliminarDetFacturacionTmp_producto } from "../controllers/producto.controller";
+import { agregarDetFacturacionTmp_producto, consultaDetFacturacionTmp, finalizarVenta, getProducto, eliminarDetFacturacionTmp_producto, eliminarDetFacturacionTmp_producto_comodato, consultaUltimasVentas } from "../controllers/producto.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 
 const router = Router();
@@ -13,5 +13,9 @@ router.get("/consultaDetFacturacionTmp", verifyToken, consultaDetFacturacionTmp)
 router.post("/agregarDetFacturacionTmp_producto", verifyToken, agregarDetFacturacionTmp_producto);
 
 router.post("/eliminarDetFacturacionTmp_producto", verifyToken, eliminarDetFacturacionTmp_producto);
+
+router.post("/eliminarDetFacturacionTmp_producto_comodato", verifyToken, eliminarDetFacturacionTmp_producto_comodato);
+
+router.get("/consultaUltimasVentas", verifyToken, consultaUltimasVentas);
 
 export default router;

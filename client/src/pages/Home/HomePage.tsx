@@ -295,9 +295,16 @@ export default function HomePage() {
   };
 
   // Eliminar del carrito - llama al backend
-  const handleEliminarDelCarrito = async (nro: number) => {
+  const handleEliminarDelCarrito = async (item: ItemCarrito) => {
     try {
-      await api.post(`/producto/eliminarDetFacturacionTmp_producto?nro=${nro}&idVendedor=${ID_VENDEDOR}`);
+      // Eliminar del detalle temporal de facturación
+      await api.post(`/producto/eliminarDetFacturacionTmp_producto?nro=${item.nro}&idVendedor=${ID_VENDEDOR}&idConfig=${ID_CONFIG}`);
+
+      // Si el producto tiene comodato, también eliminar de la tabla de comodato
+      if (item.cantidadComodato > 0) {
+        await api.post(`/producto/eliminarDetFacturacionTmp_producto_comodato?nro=${item.nro}&idVendedor=${ID_VENDEDOR}&idConfig=${ID_CONFIG}`);
+      }
+
       // Recargar el carrito desde la base de datos
       await cargarCarritoDesdeDB();
     } catch (err) {
@@ -762,7 +769,7 @@ export default function HomePage() {
                           <IconButton
                             size="small"
                             color="error"
-                            onClick={() => handleEliminarDelCarrito(item.nro)}
+                            onClick={() => handleEliminarDelCarrito(item)}
                           >
                             <DeleteIcon fontSize="small" />
                           </IconButton>
