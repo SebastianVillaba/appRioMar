@@ -14,7 +14,7 @@ router.post("/agregarDetFacturacionTmp_producto", verifyToken, agregarDetFactura
 
 router.post("/eliminarDetFacturacionTmp_producto", verifyToken, eliminarDetFacturacionTmp_producto);
 
-router.post("/eliminarDetFacturacionTmp_producto_comodato", verifyToken, eliminarDetFacturacionTmp_producto_comodato);
+router.post("/eliminarDetFacturacionTmp_producto_comodato", eliminarDetFacturacionTmp_producto_comodato);
 
 router.get("/consultaUltimasVentas", verifyToken, consultaUltimasVentas);
 

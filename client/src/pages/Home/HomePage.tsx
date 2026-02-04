@@ -192,7 +192,10 @@ export default function HomePage() {
   const cargarCarritoDesdeDB = async () => {
     if (!ID_VENDEDOR) return; // No cargar si no hay vendedor
     try {
+      console.log(ID_CONFIG);
+      console.log();
       const response = await api.get(`/producto/consultaDetFacturacionTmp?idConfig=${ID_CONFIG}&idVendedor=${ID_VENDEDOR}`);
+      console.log(response.data);
       setCarrito(response.data);
     } catch (err) {
       console.error('Error al cargar carrito:', err);

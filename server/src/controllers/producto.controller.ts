@@ -132,7 +132,7 @@ export const eliminarDetFacturacionTmp_producto_comodato = async (req: Request, 
     try {
         const { nro, idVendedor, idConfig } = req.query;
         await executeRequest({
-            query: "delete from detFacturacionComodato where nro=" + nro + " and idVendedor=" + idVendedor + "and idConfig=" + idConfig
+            query: "delete from detFacturacionComodatoTmp where nro=" + nro + " and idVendedor=" + idVendedor + "and idConfig=" + idConfig
         })
         res.status(200).json({ message: "Producto eliminado de la factura" });
     } catch (error: any) {
