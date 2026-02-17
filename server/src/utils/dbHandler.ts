@@ -5,7 +5,7 @@ dotenv.config();
 
 const config: SqlConfig = {
   server: process.env.DB_SERVER || "localhost",
-  database: process.env.DB_NAME || "curcuma",
+  database: process.env.DB_NAME || "riomar",
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   options: {

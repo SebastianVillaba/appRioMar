@@ -6,7 +6,6 @@ import {
     Grid,
     Card,
     CardContent,
-    CardMedia,
     Typography,
     Button,
     Dialog,
@@ -18,208 +17,213 @@ import {
     Divider,
     Badge,
     InputAdornment,
+    CircularProgress,
+    FormControl,
+    FormLabel,
 } from '@mui/material';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
-
-// ============================================
-// INTERFACES
-// ============================================
-interface Product {
-    id: string;
-    nombre: string;
-    precio: string;
-    imagen: string;
-}
-
-interface ProductWrapper {
-    producto: Product;
-}
-
-interface CartItem {
-    producto: Product;
-    cantidad: number;
-}
-
-// ============================================
-// MOCK DATA - TODO: Replace with API call
-// ============================================
-const MOCK_PRODUCTS: ProductWrapper[] = [
-    { producto: { id: '1', nombre: 'AGUA MINERAL 20LTS', precio: '20.000', imagen: 'https://salemmaonline.com.py/products/2198102536010.jpg?v=5' } },
-    { producto: { id: '2', nombre: 'DISPENSER DE BIDON', precio: '85.000', imagen: 'https://clasicdn.paraguay.com/pictures/2021/01/19/1750040/6721961L.webp' } },
-    { producto: { id: '3', nombre: 'AGUA MINERAL 10LTS', precio: '12.000', imagen: 'https://via.placeholder.com/150' } },
-    { producto: { id: '4', nombre: 'BIDON RECARGA 20LTS', precio: '8.000', imagen: 'https://via.placeholder.com/150' } },
-    { producto: { id: '5', nombre: 'VASO DESCARTABLE x100', precio: '15.000', imagen: 'https://via.placeholder.com/150' } },
-    { producto: { id: '6', nombre: 'DISPENSER FRIO/CALIENTE', precio: '250.000', imagen: 'https://via.placeholder.com/150' } },
-];
+import PersonIcon from '@mui/icons-material/Person';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import api from '../../services/api';
+import CantidadModal from '../../components/HomePage/CantidadModal';
+import AgregarClienteModal from '../../components/HomePage/AgregarClienteModal';
+import { useUser } from '../../hooks/useUser';
+import type { Producto, ItemCarrito, Cliente } from '../Home/HomePage';
+import type { AgregarTmpDetVenta } from '../../types/venta.types';
 
 export default function PedidoCliente() {
     // ============================================
+    // DATOS DE USUARIO
+    // ============================================
+    const { idVendedor, logout } = useUser();
+    const navigate = useNavigate();
+
+    const ID_CONFIG = 3;
+    const ID_VENDEDOR = idVendedor;
+    const TIPO_PRECIO = 1;
+
+    // ============================================
     // ESTADOS
     // ============================================
+
+    // Búsqueda de productos
     const [searchTerm, setSearchTerm] = useState<string>('');
-    const [filteredProducts, setFilteredProducts] = useState<ProductWrapper[]>(MOCK_PRODUCTS);
+    const [loadingProducto, setLoadingProducto] = useState(false);
+    const [errorProducto, setErrorProducto] = useState('');
+    const [productosEncontrados, setProductosEncontrados] = useState<Producto[]>([]);
 
-    // Estado para el modal de añadir producto
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [productDialogOpen, setProductDialogOpen] = useState<boolean>(false);
-    const [cantidadSeleccionada, setCantidadSeleccionada] = useState<number>(1);
+    // Fecha del pedido
+    const [fechaPedido, setFechaPedido] = useState<string>('');
 
-    // Estado del carrito
-    const [carrito, setCarrito] = useState<CartItem[]>([]);
+    // Modal de cantidad
+    const [modalOpen, setModalOpen] = useState(false);
+    const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
+
+    // Carrito
+    const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
     const [cartDrawerOpen, setCartDrawerOpen] = useState<boolean>(false);
 
-    // Estado para el dialog de confirmación de pedido
+    // Cliente
+    const [clienteSearchTerm, setClienteSearchTerm] = useState('');
+    const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
+    const [loadingCliente, setLoadingCliente] = useState(false);
+    const [errorCliente, setErrorCliente] = useState('');
+    const [clientesEncontrados, setClientesEncontrados] = useState<Cliente[]>([]);
+
+    // Modal de agregar cliente
+    const [modalAgregarClienteOpen, setModalAgregarClienteOpen] = useState(false);
+
+    // Dialog de confirmación de pedido
     const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
     const [orderLoading, setOrderLoading] = useState<boolean>(false);
 
     // ============================================
-    // HANDLERS
+    // CARGAR CARRITO DESDE DB
+    // ============================================
+    const cargarCarritoDesdeDB = async () => {
+        if (!ID_VENDEDOR) return;
+        try {
+            const response = await api.get(`/producto/consultaDetFacturacionTmp?idConfig=${ID_CONFIG}&idVendedor=${ID_VENDEDOR}`);
+            setCarrito(response.data);
+        } catch (err) {
+            console.error('Error al cargar carrito:', err);
+        }
+    };
+
+    const limpiarCarrito = async () => {
+        if (!ID_VENDEDOR) return;
+        try {
+            await api.post(`/producto/limpiarDetFacturacionTmp_producto?idConfig=${ID_CONFIG}&idVendedor=${ID_VENDEDOR}`);
+            setCarrito([]);
+        } catch (err) {
+            console.error('Error al limpiar carrito:', err);
+        }
+    };
+
+    useEffect(() => {
+        if (idVendedor) {
+            limpiarCarrito();
+        }
+    }, [idVendedor]);
+
+    // ============================================
+    // HANDLERS - PRODUCTOS
     // ============================================
 
     /**
-     * Busca productos por nombre
-     * TODO: Replace with API call
+     * Busca productos por nombre o código via API
      */
-    const handleSearch = async (): Promise<void> => {
-        // TODO: Replace with API call
-        // const response = await api.get(`/productos/search?q=${searchTerm}`);
-        // setFilteredProducts(response.data);
-
+    const handleBuscarProducto = async (): Promise<void> => {
         if (!searchTerm.trim()) {
-            setFilteredProducts(MOCK_PRODUCTS);
+            setErrorProducto('Por favor, ingrese un valor para la búsqueda por nombre o código');
+            setProductosEncontrados([]);
+            return;
+        }
+        setLoadingProducto(true);
+        setErrorProducto('');
+        setProductosEncontrados([]);
+
+        try {
+            const response = await api.get(`/producto/getProducto?busqueda=${encodeURIComponent(searchTerm)}`);
+            setProductosEncontrados(response.data);
+        } catch (err) {
+            console.error('Error al buscar el producto:', err);
+            setErrorProducto('Error al buscar el producto.');
+            setProductosEncontrados([]);
+        } finally {
+            setLoadingProducto(false);
+        }
+    };
+
+    /**
+     * Abre el modal de cantidad para el producto seleccionado
+     */
+    const handleSeleccionarProducto = (producto: Producto): void => {
+        setProductoSeleccionado(producto);
+        setModalOpen(true);
+    };
+
+    /**
+     * Agrega el producto al carrito via API
+     */
+    const handleAgregarAlCarrito = async (cantidad: number, cantidadAcomodato: number): Promise<void> => {
+        if (!productoSeleccionado) return;
+
+        if (!ID_VENDEDOR) {
+            alert('Sesión expirada. Por favor, inicie sesión nuevamente.');
+            logout();
+            navigate('/login');
             return;
         }
 
-        const filtered = MOCK_PRODUCTS.filter((item) =>
-            item.producto.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        setFilteredProducts(filtered);
-    };
-
-    /**
-     * Abre el modal para seleccionar cantidad
-     */
-    const handleProductClick = (producto: Product): void => {
-        setSelectedProduct(producto);
-        setCantidadSeleccionada(1);
-        setProductDialogOpen(true);
-    };
-
-    /**
-     * Añade el producto seleccionado al carrito
-     * TODO: Replace with API call
-     */
-    const handleAddToCart = async (): Promise<void> => {
-        if (!selectedProduct) return;
-
-        // TODO: Replace with API call
-        // await api.post('/carrito/add', { productoId: selectedProduct.id, cantidad: cantidadSeleccionada });
-
-        const existingItem = carrito.find((item) => item.producto.id === selectedProduct.id);
-
-        if (existingItem) {
-            setCarrito(
-                carrito.map((item) =>
-                    item.producto.id === selectedProduct.id
-                        ? { ...item, cantidad: item.cantidad + cantidadSeleccionada }
-                        : item
-                )
-            );
-        } else {
-            setCarrito([...carrito, { producto: selectedProduct, cantidad: cantidadSeleccionada }]);
+        // Validar stock
+        if (!productoSeleccionado.idStock || productoSeleccionado.idStock <= 0) {
+            alert('Este producto no tiene stock existente o es menor a 0. No se puede agregar al detalle.');
+            setModalOpen(false);
+            setProductoSeleccionado(null);
+            return;
         }
 
-        setProductDialogOpen(false);
-        setSelectedProduct(null);
-        setCantidadSeleccionada(1);
+        try {
+            const datosAgregar: AgregarTmpDetVenta = {
+                idConfig: ID_CONFIG,
+                idVendedor: ID_VENDEDOR,
+                idItem: productoSeleccionado.idProducto,
+                idStock: productoSeleccionado.idStock,
+                cantidad: cantidad,
+                tipoPrecio: TIPO_PRECIO,
+                tienePrecio: false,
+                precioNuevo: productoSeleccionado.precio,
+                cantidadComodato: cantidadAcomodato
+            };
+
+            await api.post('/producto/agregarDetFacturacionTmp_producto', datosAgregar);
+
+            // Recargar el carrito desde la base de datos
+            await cargarCarritoDesdeDB();
+        } catch (err) {
+            console.error('Error al agregar producto al carrito:', err);
+            alert('Error al agregar el producto. Intente nuevamente.');
+        }
+
+        // Limpiar búsqueda de productos
+        setSearchTerm('');
+        setProductosEncontrados([]);
+        setProductoSeleccionado(null);
     };
 
-    /**
-     * Modifica la cantidad de un item en el carrito
-     */
-    const handleUpdateCartItemQuantity = (productoId: string, cambio: number): void => {
-        setCarrito(
-            carrito.map((item) => {
-                if (item.producto.id === productoId) {
-                    const nuevaCantidad = item.cantidad + cambio;
-                    return { ...item, cantidad: Math.max(1, nuevaCantidad) };
-                }
-                return item;
-            })
-        );
-    };
+    // ============================================
+    // HANDLERS - CARRITO
+    // ============================================
 
     /**
-     * Elimina un item del carrito
+     * Elimina un item del carrito via API
      */
-    const handleRemoveFromCart = (productoId: string): void => {
-        setCarrito(carrito.filter((item) => item.producto.id !== productoId));
+    const handleEliminarDelCarrito = async (item: ItemCarrito): Promise<void> => {
+        try {
+            await api.post(`/producto/eliminarDetFacturacionTmp_producto?nro=${item.nro}&idVendedor=${ID_VENDEDOR}&idConfig=${ID_CONFIG}`);
+
+            if (item.cantidadComodato > 0) {
+                await api.post(`/producto/eliminarDetFacturacionTmp_producto_comodato?nro=${item.nro}&idVendedor=${ID_VENDEDOR}&idConfig=${ID_CONFIG}`);
+            }
+
+            await cargarCarritoDesdeDB();
+        } catch (err) {
+            console.error('Error al eliminar producto del carrito:', err);
+            alert('Error al eliminar el producto. Intente nuevamente.');
+        }
     };
 
     /**
      * Calcula el total del carrito
      */
     const calcularTotal = (): number => {
-        return carrito.reduce((total, item) => {
-            const precio = parseInt(item.producto.precio.replace(/\./g, ''), 10);
-            return total + precio * item.cantidad;
-        }, 0);
-    };
-
-    /**
-     * Formatea un número como precio
-     */
-    const formatPrecio = (precio: number): string => {
-        return precio.toLocaleString('es-PY');
-    };
-
-    /**
-     * Abre el diálogo de confirmación
-     */
-    const handleConfirmOrder = (): void => {
-        setConfirmDialogOpen(true);
-    };
-
-    /**
-     * Procesa el pedido
-     * TODO: Replace with API call
-     */
-    const handlePlaceOrder = async (): Promise<void> => {
-        setOrderLoading(true);
-
-        try {
-            // TODO: Replace with API call
-            // const orderData = {
-            //   items: carrito.map(item => ({
-            //     productoId: item.producto.id,
-            //     cantidad: item.cantidad,
-            //     precioUnitario: item.producto.precio
-            //   })),
-            //   total: calcularTotal()
-            // };
-            // await api.post('/pedidos/crear', orderData);
-
-            // Simulamos un delay de red
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            alert('¡Pedido realizado con éxito!');
-
-            // Limpiar estado
-            setCarrito([]);
-            setConfirmDialogOpen(false);
-            setCartDrawerOpen(false);
-        } catch (error) {
-            console.error('Error al realizar el pedido:', error);
-            alert('Error al realizar el pedido. Por favor, intente nuevamente.');
-        } finally {
-            setOrderLoading(false);
-        }
+        return carrito.reduce((total, item) => total + (item.subtotal || item.precioDescuento * item.cantidad), 0);
     };
 
     /**
@@ -230,7 +234,138 @@ export default function PedidoCliente() {
     };
 
     // ============================================
-    // RENDER
+    // HANDLERS - CLIENTE (en modal de confirmación)
+    // ============================================
+
+    /**
+     * Busca clientes por nombre o documento
+     */
+    const handleBuscarCliente = async (): Promise<void> => {
+        if (!clienteSearchTerm.trim()) {
+            setErrorCliente('Por favor, ingrese el nombre o documento del cliente.');
+            return;
+        }
+        setLoadingCliente(true);
+        setErrorCliente('');
+        setClientesEncontrados([]);
+
+        try {
+            const response = await api.get(`/cliente/getCliente?busqueda=${encodeURIComponent(clienteSearchTerm)}`);
+            setClientesEncontrados(response.data);
+        } catch (err) {
+            console.error('Error al buscar el cliente:', err);
+            setErrorCliente('Error al buscar el cliente.');
+            setClientesEncontrados([]);
+        } finally {
+            setLoadingCliente(false);
+        }
+    };
+
+    /**
+     * Selecciona un cliente encontrado
+     */
+    const handleSeleccionarCliente = (cliente: Cliente): void => {
+        setClienteSeleccionado(cliente);
+        setClientesEncontrados([]);
+        setClienteSearchTerm('');
+    };
+
+    // ============================================
+    // HANDLERS - PEDIDO
+    // ============================================
+
+    /**
+     * Abre el diálogo de confirmación
+     */
+    const handleConfirmOrder = (): void => {
+        setConfirmDialogOpen(true);
+    };
+
+    /// ============================================
+    /// FUNCIONES DE AYUDA
+    /// ============================================
+    const validarFecha = (fecha: string) => {
+        const fechaActual = new Date();
+        const fechaPedido = new Date(fecha);
+        if (fechaPedido < fechaActual) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Procesa el pedido
+     * TODO: Implementar lógica de guardar pedido del cliente (trabajar juntos después)
+     */
+    const handlePlaceOrder = async (): Promise<void> => {
+        if (!clienteSeleccionado) {
+            alert('Por favor, seleccione un cliente.');
+            return;
+        }
+
+        if (!ID_VENDEDOR) {
+            alert('Sesión expirada. Por favor, inicie sesión nuevamente.');
+            logout();
+            navigate('/login');
+            return;
+        }
+
+        if (carrito.length === 0) {
+            alert('Por favor, agregue al menos un producto.');
+            return;
+        }
+
+        setOrderLoading(true);
+
+        try {
+            const pedidoData = {
+                idConfig: ID_CONFIG,
+                idCliente: clienteSeleccionado.idCliente,
+                ruc: clienteSeleccionado.ruc || '',
+                cliente: clienteSeleccionado.nombre,
+                totalVenta: calcularTotal(),
+                totalDescuento: 0,
+                idUsuarioAlta: 1,
+                idVendedor: ID_VENDEDOR,
+                fecha: fechaPedido.split('-').reverse().join('/'),
+                tipoPrecio: TIPO_PRECIO
+            };
+
+            const response = await api.post('/producto/guardarPedidoCliente', pedidoData);
+
+            if (response.data.success) {
+                alert(`¡Pedido realizado con éxito!\nCliente: ${clienteSeleccionado.nombre}\nTotal: Gs. ${calcularTotal().toLocaleString()}\nPedido #${response.data.idPedidoCliente}`);
+
+                // Limpiar estado
+                setCarrito([]);
+                setClienteSeleccionado(null);
+                setClienteSearchTerm('');
+                setConfirmDialogOpen(false);
+                setCartDrawerOpen(false);
+            } else {
+                alert('Error: No se pudo guardar el pedido correctamente.');
+            }
+        } catch (error) {
+            console.error('Error al realizar el pedido:', error);
+            alert('Error al realizar el pedido. Por favor, intente nuevamente.');
+        } finally {
+            setOrderLoading(false);
+        }
+    };
+
+    /**
+     * Cierra el dialog de confirmación y limpia estados de cliente
+     */
+    const handleCloseConfirmDialog = (): void => {
+        setConfirmDialogOpen(false);
+        setClienteSeleccionado(null);
+        setClienteSearchTerm('');
+        setClientesEncontrados([]);
+        setErrorCliente('');
+    };
+
+    // ============================================
+    //                  RENDER
     // ============================================
     return (
         <Box
@@ -242,8 +377,8 @@ export default function PedidoCliente() {
         >
             <Container maxWidth="lg" sx={{ pt: 2 }}>
                 {/* ============================================
-            BARRA DE BÚSQUEDA
-            ============================================ */}
+                                BARRA DE BÚSQUEDA
+                    ============================================ */}
                 <Box
                     sx={{
                         display: 'flex',
@@ -255,19 +390,25 @@ export default function PedidoCliente() {
                     <TextField
                         fullWidth
                         variant="outlined"
-                        placeholder="Buscar productos..."
+                        placeholder="Buscar productos por nombre o código..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyPress={(e) => {
                             if (e.key === 'Enter') {
-                                handleSearch();
+                                handleBuscarProducto();
                             }
                         }}
+                        autoComplete="off"
                         InputProps={{
                             endAdornment: (
                                 <InputAdornment position="end">
-                                    <IconButton onClick={handleSearch} edge="end" color="primary">
-                                        <SearchIcon />
+                                    <IconButton
+                                        onClick={handleBuscarProducto}
+                                        edge="end"
+                                        color="primary"
+                                        disabled={loadingProducto}
+                                    >
+                                        {loadingProducto ? <CircularProgress size={20} /> : <SearchIcon />}
                                     </IconButton>
                                 </InputAdornment>
                             ),
@@ -283,18 +424,27 @@ export default function PedidoCliente() {
                     />
                 </Box>
 
+                {/* Error de búsqueda */}
+                {errorProducto && (
+                    <Box sx={{ textAlign: 'center', mb: 2 }}>
+                        <Typography color="error" variant="body2">
+                            {errorProducto}
+                        </Typography>
+                    </Box>
+                )}
+
                 {/* ============================================
-            LISTADO DE PRODUCTOS
-            ============================================ */}
+                                LISTADO DE PRODUCTOS
+                    ============================================ */}
                 <Grid container spacing={2}>
-                    {filteredProducts.map((item) => (
+                    {productosEncontrados.map((producto) => (
                         <Grid
                             size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
-                            key={item.producto.id}
+                            key={producto.idProducto}
                         >
                             <Card
                                 elevation={3}
-                                onClick={() => handleProductClick(item.producto)}
+                                onClick={() => handleSeleccionarProducto(producto)}
                                 sx={{
                                     cursor: 'pointer',
                                     transition: 'transform 0.2s, box-shadow 0.2s',
@@ -304,13 +454,6 @@ export default function PedidoCliente() {
                                     },
                                 }}
                             >
-                                <CardMedia
-                                    component="img"
-                                    height="150"
-                                    image={item.producto.imagen}
-                                    alt={item.producto.nombre}
-                                    sx={{ objectFit: 'cover' }}
-                                />
                                 <CardContent>
                                     <Typography
                                         variant="subtitle1"
@@ -324,10 +467,15 @@ export default function PedidoCliente() {
                                             minHeight: '3em',
                                         }}
                                     >
-                                        {item.producto.nombre}
+                                        {producto.nombreMercaderia}
                                     </Typography>
+                                    {producto.codigo && (
+                                        <Typography variant="caption" color="text.secondary">
+                                            Código: {producto.codigo}
+                                        </Typography>
+                                    )}
                                     <Typography variant="h6" color="primary" fontWeight="bold">
-                                        Gs. {item.producto.precio}
+                                        Gs. {producto.precio.toLocaleString()}
                                     </Typography>
                                 </CardContent>
                             </Card>
@@ -336,7 +484,7 @@ export default function PedidoCliente() {
                 </Grid>
 
                 {/* Mensaje cuando no hay resultados */}
-                {filteredProducts.length === 0 && (
+                {searchTerm.trim() && !loadingProducto && productosEncontrados.length === 0 && !errorProducto && (
                     <Box sx={{ textAlign: 'center', mt: 4, py: 4 }}>
                         <Typography variant="h6" color="text.secondary">
                             No se encontraron productos
@@ -349,8 +497,8 @@ export default function PedidoCliente() {
             </Container>
 
             {/* ============================================
-          FAB - BOTÓN FLOTANTE DEL CARRITO
-          ============================================ */}
+                        FAB - BOTÓN FLOTANTE DEL CARRITO
+                ============================================ */}
             <Fab
                 color="primary"
                 aria-label="carrito"
@@ -368,81 +516,21 @@ export default function PedidoCliente() {
             </Fab>
 
             {/* ============================================
-          DIALOG - SELECCIONAR CANTIDAD
-          ============================================ */}
-            <Dialog
-                open={productDialogOpen}
-                onClose={() => setProductDialogOpen(false)}
-                maxWidth="xs"
-                fullWidth
-            >
-                <DialogTitle>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        Añadir al carrito
-                        <IconButton onClick={() => setProductDialogOpen(false)}>
-                            <CloseIcon />
-                        </IconButton>
-                    </Box>
-                </DialogTitle>
-                <DialogContent>
-                    {selectedProduct && (
-                        <Box sx={{ textAlign: 'center' }}>
-                            <Box
-                                component="img"
-                                src={selectedProduct.imagen}
-                                alt={selectedProduct.nombre}
-                                sx={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 2, mb: 2 }}
-                            />
-                            <Typography variant="h6" fontWeight="bold" gutterBottom>
-                                {selectedProduct.nombre}
-                            </Typography>
-                            <Typography variant="h5" color="primary" fontWeight="bold" gutterBottom>
-                                Gs. {selectedProduct.precio}
-                            </Typography>
-
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 3, gap: 2 }}>
-                                <IconButton
-                                    onClick={() => setCantidadSeleccionada(Math.max(1, cantidadSeleccionada - 1))}
-                                    disabled={cantidadSeleccionada <= 1}
-                                    sx={{ bgcolor: 'grey.200', '&:hover': { bgcolor: 'grey.300' } }}
-                                >
-                                    <RemoveIcon />
-                                </IconButton>
-                                <Typography variant="h4" fontWeight="bold" sx={{ minWidth: 60, textAlign: 'center' }}>
-                                    {cantidadSeleccionada}
-                                </Typography>
-                                <IconButton
-                                    onClick={() => setCantidadSeleccionada(cantidadSeleccionada + 1)}
-                                    sx={{ bgcolor: 'grey.200', '&:hover': { bgcolor: 'grey.300' } }}
-                                >
-                                    <AddIcon />
-                                </IconButton>
-                            </Box>
-                        </Box>
-                    )}
-                </DialogContent>
-                <DialogActions sx={{ p: 2, pt: 0 }}>
-                    <Button
-                        variant="contained"
-                        fullWidth
-                        size="large"
-                        onClick={handleAddToCart}
-                        sx={{
-                            bgcolor: '#28a745',
-                            '&:hover': { bgcolor: '#218838' },
-                            py: 1.5,
-                            fontSize: '1rem',
-                            fontWeight: 'bold',
-                        }}
-                    >
-                        Añadir al Carrito
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                        MODAL DE CANTIDAD (CantidadModal)
+                ============================================ */}
+            <CantidadModal
+                open={modalOpen}
+                onClose={() => {
+                    setModalOpen(false);
+                    setProductoSeleccionado(null);
+                }}
+                onConfirm={handleAgregarAlCarrito}
+                productoNombre={productoSeleccionado?.nombreMercaderia || ''}
+            />
 
             {/* ============================================
-          DRAWER - CARRITO DE COMPRAS
-          ============================================ */}
+                        DRAWER - CARRITO DE COMPRAS
+                ============================================ */}
             <Drawer
                 anchor="right"
                 open={cartDrawerOpen}
@@ -474,51 +562,40 @@ export default function PedidoCliente() {
                             </Box>
                         ) : (
                             carrito.map((item) => (
-                                <Card key={item.producto.id} variant="outlined" sx={{ mb: 2 }}>
+                                <Card key={item.idDetTmp} variant="outlined" sx={{ mb: 2 }}>
                                     <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                                        <Box sx={{ display: 'flex', gap: 2 }}>
-                                            <Box
-                                                component="img"
-                                                src={item.producto.imagen}
-                                                alt={item.producto.nombre}
-                                                sx={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 1 }}
-                                            />
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <Box sx={{ flex: 1 }}>
-                                                <Typography variant="body2" fontWeight="bold" noWrap>
-                                                    {item.producto.nombre}
+                                                <Typography variant="body2" fontWeight="bold">
+                                                    {item.nombreServicio}
                                                 </Typography>
-                                                <Typography variant="body2" color="primary" fontWeight="bold">
-                                                    Gs. {item.producto.precio}
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Precio unitario: {item.precioDescuento.toLocaleString()}
                                                 </Typography>
-
-                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => handleUpdateCartItemQuantity(item.producto.id, -1)}
-                                                            disabled={item.cantidad <= 1}
-                                                        >
-                                                            <RemoveIcon fontSize="small" />
-                                                        </IconButton>
-                                                        <Typography variant="body2" fontWeight="bold" sx={{ minWidth: 24, textAlign: 'center' }}>
-                                                            {item.cantidad}
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                        <Typography variant="body2" fontWeight="bold">
+                                                            Cantidad: {item.cantidad}
                                                         </Typography>
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => handleUpdateCartItemQuantity(item.producto.id, 1)}
-                                                        >
-                                                            <AddIcon fontSize="small" />
-                                                        </IconButton>
+                                                        {item.cantidadComodato > 0 && (
+                                                            <Typography variant="body2" fontWeight="bold">
+                                                                Comodato: {item.cantidadComodato}
+                                                            </Typography>
+                                                        )}
                                                     </Box>
-                                                    <IconButton
-                                                        size="small"
-                                                        color="error"
-                                                        onClick={() => handleRemoveFromCart(item.producto.id)}
-                                                    >
-                                                        <DeleteIcon fontSize="small" />
-                                                    </IconButton>
+                                                    <Typography variant="body1" fontWeight="bold" color="primary">
+                                                        {(item.subtotal || item.precioDescuento * item.cantidad).toLocaleString()}
+                                                    </Typography>
                                                 </Box>
                                             </Box>
+                                            <IconButton
+                                                size="small"
+                                                color="error"
+                                                onClick={() => handleEliminarDelCarrito(item)}
+                                                sx={{ ml: 1 }}
+                                            >
+                                                <DeleteIcon fontSize="small" />
+                                            </IconButton>
                                         </Box>
                                     </CardContent>
                                 </Card>
@@ -534,7 +611,7 @@ export default function PedidoCliente() {
                                     Total:
                                 </Typography>
                                 <Typography variant="h5" color="primary" fontWeight="bold">
-                                    Gs. {formatPrecio(calcularTotal())}
+                                    Gs. {calcularTotal().toLocaleString()}
                                 </Typography>
                             </Box>
                             <Button
@@ -557,35 +634,291 @@ export default function PedidoCliente() {
                 </Box>
             </Drawer>
 
-            {/* ============================================
-          DIALOG - CONFIRMACIÓN DE PEDIDO
-          ============================================ */}
-            <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)} maxWidth="xs" fullWidth>
-                <DialogTitle>Confirmar Pedido</DialogTitle>
+            {/* ==============================================================
+                    DIALOG - CONFIRMACIÓN DE PEDIDO (con búsqueda de cliente)
+                ============================================================== */}
+            <Dialog open={confirmDialogOpen} onClose={handleCloseConfirmDialog} maxWidth="sm" fullWidth>
+                <DialogTitle>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        Confirmar Pedido
+                        <IconButton onClick={handleCloseConfirmDialog}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+                </DialogTitle>
                 <DialogContent>
-                    <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+                    {/* Resumen del pedido */}
+                    <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
                         <Typography variant="body2" color="text.secondary">
                             Total de productos: {getTotalCartItems()}
                         </Typography>
                         <Typography variant="h6" fontWeight="bold" color="primary">
-                            Total: {formatPrecio(calcularTotal())}
+                            Total: Gs. {calcularTotal().toLocaleString()}
                         </Typography>
                     </Box>
+
+                    <Divider sx={{ mb: 2 }} />
+
+                    {/* Sección de búsqueda de cliente */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <PersonIcon color="primary" />
+                            <Typography variant="h6" fontWeight="bold">
+                                Cliente
+                            </Typography>
+                        </Box>
+                        <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<PersonAddIcon />}
+                            onClick={() => setModalAgregarClienteOpen(true)}
+                            sx={{
+                                background: 'linear-gradient(135deg, #D4A017 0%, #F4C430 100%)',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                                padding: { xs: '4px 8px', sm: '6px 12px' },
+                                '&:hover': {
+                                    background: 'linear-gradient(135deg, #C49515 0%, #E3B32E 100%)'
+                                }
+                            }}
+                        >
+                            Nuevo
+                        </Button>
+                    </Box>
+
+                    {!clienteSeleccionado ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <TextField
+                                fullWidth
+                                variant="outlined"
+                                placeholder="Buscar cliente por nombre o documento"
+                                size="small"
+                                value={clienteSearchTerm}
+                                onChange={(e) => setClienteSearchTerm(e.target.value)}
+                                autoComplete="off"
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handleBuscarCliente();
+                                    }
+                                }}
+                            />
+                            <Button
+                                variant="contained"
+                                fullWidth
+                                onClick={handleBuscarCliente}
+                                disabled={loadingCliente}
+                                sx={{ backgroundColor: '#28a745' }}
+                            >
+                                {loadingCliente ? <CircularProgress size={24} color="inherit" /> : 'Buscar Cliente'}
+                            </Button>
+                            {errorCliente && (
+                                <Typography color="error" variant="body2">
+                                    {errorCliente}
+                                </Typography>
+                            )}
+
+                            {/* Resultados de búsqueda de clientes */}
+                            {clientesEncontrados.length > 0 && (
+                                <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 1,
+                                    mt: 1,
+                                    height: '200px',
+                                    minHeight: '200px',
+                                    maxHeight: '200px',
+                                    overflowY: 'auto',
+                                    overflowX: 'hidden',
+                                    border: '1px solid #e0e0e0',
+                                    borderRadius: 1,
+                                    padding: 1,
+                                    backgroundColor: '#fafafa',
+                                    position: 'relative',
+                                    flexShrink: 0
+                                }}>
+                                    <Typography
+                                        variant="subtitle2"
+                                        color="text.secondary"
+                                        sx={{
+                                            position: 'sticky',
+                                            top: 0,
+                                            backgroundColor: '#fafafa',
+                                            zIndex: 1,
+                                            paddingBottom: 0.5
+                                        }}
+                                    >
+                                        Resultados ({clientesEncontrados.length}):
+                                    </Typography>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 1,
+                                        flexGrow: 1
+                                    }}>
+                                        {clientesEncontrados.map((cliente) => (
+                                            <Card
+                                                key={cliente.idCliente}
+                                                variant="outlined"
+                                                sx={{
+                                                    backgroundColor: '#f8f9fa',
+                                                    flexShrink: 0
+                                                }}
+                                            >
+                                                <CardContent sx={{ padding: '12px !important' }}>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                            <Typography
+                                                                variant="body2"
+                                                                fontWeight="bold"
+                                                                sx={{
+                                                                    overflow: 'hidden',
+                                                                    textOverflow: 'ellipsis',
+                                                                    whiteSpace: 'nowrap'
+                                                                }}
+                                                            >
+                                                                {cliente.nombre}
+                                                            </Typography>
+                                                            {cliente.ruc && (
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    Cédula: {cliente.ruc}
+                                                                </Typography>
+                                                            )}
+                                                        </Box>
+                                                        <Button
+                                                            size="small"
+                                                            variant="contained"
+                                                            onClick={() => handleSeleccionarCliente(cliente)}
+                                                            sx={{
+                                                                backgroundColor: '#28a745',
+                                                                flexShrink: 0,
+                                                                ml: 1
+                                                            }}
+                                                        >
+                                                            Seleccionar
+                                                        </Button>
+                                                    </Box>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </Box>
+                                </Box>
+                            )}
+                        </Box>
+                    ) : (
+                        <Box sx={{
+                            backgroundColor: '#e8f5e9',
+                            padding: 2,
+                            borderRadius: 1,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <Box>
+                                <Typography variant="body1" fontWeight="bold">
+                                    {clienteSeleccionado.nombre}
+                                </Typography>
+                                {clienteSeleccionado.ruc && (
+                                    <Typography variant="body2" color="text.secondary">
+                                        Cédula: {clienteSeleccionado.ruc}
+                                    </Typography>
+                                )}
+                            </Box>
+                            <Button
+                                size="small"
+                                onClick={() => {
+                                    setClienteSeleccionado(null);
+                                    setClienteSearchTerm('');
+                                    setClientesEncontrados([]);
+                                }}
+                            >
+                                Cambiar
+                            </Button>
+                        </Box>
+                    )}
+                    <FormControl sx={{ mt: 2 }}>
+                        <FormLabel sx={{ fontSize: '2.5vh' }}>Fecha del pedido</FormLabel>
+                        <TextField
+                            type="date"
+                            value={fechaPedido}
+                            onChange={(e) => setFechaPedido(e.target.value)}
+                            error={!validarFecha(fechaPedido)}
+                            helperText={!validarFecha(fechaPedido) ? 'La fecha del pedido no puede ser menor a la fecha actual.' : ''}
+                        />
+                    </FormControl>
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setConfirmDialogOpen(false)} disabled={orderLoading}>
-                        Cancelar 
+                    <Button onClick={handleCloseConfirmDialog} disabled={orderLoading}>
+                        Cancelar
                     </Button>
                     <Button
                         variant="contained"
                         onClick={handlePlaceOrder}
-                        disabled={orderLoading}
+                        disabled={orderLoading || !clienteSeleccionado}
                         sx={{ bgcolor: '#28a745', '&:hover': { bgcolor: '#238b3aff' } }}
                     >
                         {orderLoading ? 'Procesando...' : 'Confirmar Pedido'}
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* ==============================================================
+                                MODAL DE AGREGAR CLIENTE
+                ============================================================== */}
+            <AgregarClienteModal
+                open={modalAgregarClienteOpen}
+                onClose={() => setModalAgregarClienteOpen(false)}
+                onGuardar={async (clienteData) => {
+                    try {
+                        const fechaAniversarioPorDefecto = clienteData.fechaAniversario || '1990-01-01';
+
+                        const response = await api.post('/cliente/crearCliente', {
+                            idUsuarioAlta: 1,
+                            cliente: {
+                                nombre: clienteData.nombre,
+                                apellido: clienteData.apellido || '',
+                                ruc: clienteData.rucCedula,
+                                dv: clienteData.dv || '',
+                                direccion: clienteData.direccion || '',
+                                referencia: clienteData.referencia || '',
+                                fechaAniversario: fechaAniversarioPorDefecto,
+                                celular: clienteData.celular || '',
+                                telefono: clienteData.telefono || '',
+                                email: clienteData.email || '',
+                                idGrupoCliente: clienteData.grupo,
+                                geologalizacion: clienteData.geolocalizacion || ''
+                            }
+                        });
+
+                        if (response.data.success === false) {
+                            alert(`Error al guardar cliente: ${response.data.message}`);
+                            return;
+                        }
+
+                        // Si el backend devuelve el cliente creado, lo seleccionamos automáticamente
+                        if (response.data.data && response.data.data.length > 0) {
+                            const nuevoCliente = response.data.data[0];
+                            setClienteSeleccionado({
+                                idCliente: nuevoCliente.idCliente,
+                                nombre: `${clienteData.nombre} ${clienteData.apellido || ''}`.trim(),
+                                ruc: clienteData.rucCedula,
+                                direccion: clienteData.direccion || ''
+                            });
+                        }
+
+                        alert('Cliente guardado exitosamente!');
+                        setModalAgregarClienteOpen(false);
+                    } catch (error: unknown) {
+                        console.error('Error al guardar cliente:', error);
+                        const axiosError = error as { response?: { data?: { message?: string; success?: boolean } } };
+                        if (axiosError.response?.data?.message) {
+                            alert(`Error: ${axiosError.response.data.message}`);
+                        } else {
+                            alert('Error al guardar el cliente. Por favor, intente nuevamente.');
+                        }
+                    }
+                }}
+            />
         </Box>
     );
 }

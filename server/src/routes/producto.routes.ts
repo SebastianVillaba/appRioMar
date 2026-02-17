@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { agregarDetFacturacionTmp_producto, consultaDetFacturacionTmp, finalizarVenta, getProducto, eliminarDetFacturacionTmp_producto, eliminarDetFacturacionTmp_producto_comodato, consultaUltimasVentas } from "../controllers/producto.controller";
+import { agregarDetFacturacionTmp_producto, consultaDetFacturacionTmp, finalizarVenta, getProducto, eliminarDetFacturacionTmp_producto, eliminarDetFacturacionTmp_producto_comodato, consultaUltimasVentas, limpiarDetFacturacionTmp_producto, guardarPedidoCliente, consultaPedidosPendientes, pedidoClienteFacturacion } from "../controllers/producto.controller";
 import { verifyToken } from "../middlewares/auth.middleware";
 
 const router = Router();
@@ -14,8 +14,17 @@ router.post("/agregarDetFacturacionTmp_producto", verifyToken, agregarDetFactura
 
 router.post("/eliminarDetFacturacionTmp_producto", verifyToken, eliminarDetFacturacionTmp_producto);
 
-router.post("/eliminarDetFacturacionTmp_producto_comodato", eliminarDetFacturacionTmp_producto_comodato);
+router.post("/eliminarDetFacturacionTmp_producto_comodato", verifyToken, eliminarDetFacturacionTmp_producto_comodato);
+
+router.post("/limpiarDetFacturacionTmp_producto", verifyToken, limpiarDetFacturacionTmp_producto);
 
 router.get("/consultaUltimasVentas", verifyToken, consultaUltimasVentas);
+
+router.post("/guardarPedidoCliente", verifyToken, guardarPedidoCliente);
+
+router.get("/consultaPedidosPendientes", verifyToken, consultaPedidosPendientes);
+
+router.post("/pedidoClienteFacturacion", verifyToken, pedidoClienteFacturacion);
+
 
 export default router;

@@ -20,14 +20,17 @@ import PersonIcon from '@mui/icons-material/Person';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import api from '../../services/api';
 import CantidadModal from '../../components/HomePage/CantidadModal';
 import AgregarClienteModal from '../../components/HomePage/AgregarClienteModal';
+import PedidosPendientesModal from '../../components/HomePage/PedidosPendientesModal';
+import type { PedidoPendiente } from '../../components/HomePage/PedidosPendientesModal';
 import { useUser } from '../../hooks/useUser';
 import type { Venta, TipoVenta, AgregarTmpDetVenta } from '../../types/venta.types';
 import { generarTicket } from '../../services/ticketService.example';
 
-interface Cliente {
+export interface Cliente {
   idCliente: number;
   nombre: string;
   ruc?: string;
@@ -35,7 +38,7 @@ interface Cliente {
   idGrupoCliente?: number;
 }
 
-interface Producto {
+export interface Producto {
   idProducto: number;
   nombreMercaderia: string;
   nombreServicio?: string;
@@ -45,7 +48,7 @@ interface Producto {
   idStock: number | null;
 }
 
-interface ItemCarrito {
+export interface ItemCarrito {
   idDetTmp: number;
   nro: number;
   nombreServicio: string;
@@ -84,11 +87,25 @@ export default function HomePage() {
   // Estado para tipo de venta
   const [tipoVenta, setTipoVenta] = useState<number>(1); // Default: Contado
 
+  // Estados para modal de pedidos pendientes
+  const [modalPedidosOpen, setModalPedidosOpen] = useState(false);
+  const [loadingPedidoFacturacion, setLoadingPedidoFacturacion] = useState(false);
+
   // Opciones de tipo de venta
   const tiposVenta: TipoVenta[] = [
     { id: 1, nombre: 'Contado' },
     { id: 2, nombre: 'Crédito' }
   ];
+
+  const limpiarCarrito = async () => {
+    if (!ID_VENDEDOR) return;
+    try {
+      await api.post(`/producto/limpiarDetFacturacionTmp_producto?idConfig=${ID_CONFIG}&idVendedor=${ID_VENDEDOR}`);
+      setCarrito([]);
+    } catch (err) {
+      console.error('Error al limpiar carrito:', err);
+    }
+  };
 
   // Búsqueda de Cliente
   const handleBuscarCliente = async () => {
@@ -205,7 +222,7 @@ export default function HomePage() {
   // Cargar carrito al montar el componente
   useEffect(() => {
     if (idVendedor) {
-      cargarCarritoDesdeDB();
+      limpiarCarrito();
     }
   }, [idVendedor]);
 
@@ -319,6 +336,54 @@ export default function HomePage() {
   // Calcular total
   const calcularTotal = () => {
     return carrito.reduce((total, item) => total + (item.subtotal || item.precioDescuento * item.cantidad), 0);
+  };
+
+  // Facturar un pedido pendiente
+  const handleFacturarPedido = async (pedido: PedidoPendiente) => {
+    if (!ID_VENDEDOR) {
+      alert('Sesión expirada. Por favor, inicie sesión nuevamente.');
+      logout();
+      navigate('/login');
+      return;
+    }
+
+    setLoadingPedidoFacturacion(true);
+    try {
+      // Limpiar carrito actual antes de cargar el pedido
+      await api.post(`/producto/limpiarDetFacturacionTmp_producto?idConfig=${ID_CONFIG}&idVendedor=${ID_VENDEDOR}`);
+
+      const response = await api.post('/producto/pedidoClienteFacturacion', {
+        idPedidoCliente: pedido.idPedidoCliente,
+        idVendedor: ID_VENDEDOR,
+        idConfig: ID_CONFIG
+      });
+
+      if (response.data.success) {
+        // Autoseleccionar el cliente del pedido (el SP ya devuelve los datos del cliente)
+        const pedidoData = response.data.pedido;
+        if (pedidoData) {
+          setClienteSeleccionado({
+            idCliente: pedidoData.idCliente,
+            nombre: pedidoData.nombre,
+            ruc: pedidoData.ruc || '',
+            direccion: '',
+          });
+        }
+
+        // Recargar carrito con los productos del pedido
+        await cargarCarritoDesdeDB();
+
+        setModalPedidosOpen(false);
+        //alert(`Pedido de ${pedido.cliente} cargado exitosamente. Revise el carrito y finalice la facturación.`);
+      } else {
+        alert('Error al procesar el pedido.');
+      }
+    } catch (err) {
+      console.error('Error al facturar pedido:', err);
+      alert('Error al facturar el pedido. Intente nuevamente.');
+    } finally {
+      setLoadingPedidoFacturacion(false);
+    }
   };
 
   // Finalizar facturación
@@ -590,11 +655,31 @@ export default function HomePage() {
         {/* SECCIÓN 2: TIPO DE VENTA */}
         <Card elevation={3}>
           <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <ReceiptIcon color="primary" />
-              <Typography variant="h6" fontWeight="bold">
-                Tipo de Venta
-              </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ReceiptIcon color="primary" />
+                <Typography variant="h6" fontWeight="bold">
+                  Tipo de Venta
+                </Typography>
+              </Box>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AssignmentIcon />}
+                onClick={() => setModalPedidosOpen(true)}
+                sx={{
+                  background: 'linear-gradient(135deg, #1565C0 0%, #1976D2 100%)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                  padding: { xs: '4px 8px', sm: '6px 12px' },
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #0D47A1 0%, #1565C0 100%)'
+                  }
+                }}
+              >
+                Pedidos
+              </Button>
             </Box>
 
             <FormControl fullWidth size="small">
@@ -918,6 +1003,14 @@ export default function HomePage() {
             // No cerrar el modal para que el usuario pueda corregir
           }
         }}
+      />
+
+      {/* Modal de Pedidos Pendientes */}
+      <PedidosPendientesModal
+        open={modalPedidosOpen}
+        onClose={() => setModalPedidosOpen(false)}
+        onFacturar={handleFacturarPedido}
+        loadingFacturar={loadingPedidoFacturacion}
       />
     </Box>
   );

@@ -126,7 +126,7 @@ export const eliminarDetFacturacionTmp_producto = async (req: Request, res: Resp
         console.error("Error al eliminar producto de la factura:", error);
         res.status(500).json({ message: "Error al eliminar producto de la factura" });
     }
-}
+};
 
 export const eliminarDetFacturacionTmp_producto_comodato = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -138,6 +138,19 @@ export const eliminarDetFacturacionTmp_producto_comodato = async (req: Request, 
     } catch (error: any) {
         console.error("Error al eliminar producto de la factura:", error);
         res.status(500).json({ message: "Error al eliminar producto de la factura" });
+    }
+};
+
+export const limpiarDetFacturacionTmp_producto = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { idVendedor, idConfig } = req.query;
+        await executeRequest({
+            query: "delete from detFacturacionTmp where idVendedor=" + idVendedor + "and idConfig=" + idConfig
+        })
+        res.status(200).json({ message: "Detalle de la factura limpiado" });
+    } catch (error: any) {
+        console.error("Error al limpiar detalle de la factura:", error);
+        res.status(500).json({ message: "Error al limpiar detalle de la factura" });
     }
 }
 
@@ -169,7 +182,20 @@ export const consultaDetFacturacionTmp = async (req: Request, res: Response): Pr
         console.error("Error al consultar detalle de la factura:", error);
         res.status(500).json({ message: "Error al consultar detalle de la factura" });
     }
-}
+};
+
+export const consultaUltimasVentas = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { idVendedor } = req.query;
+        const result = await executeRequest({
+            query: `select top 5 * from cabFacturacion where idVendedor=${idVendedor} order by idFacturacion desc`
+        })
+        res.status(200).json(result.recordset);
+    } catch (error: any) {
+        console.error("Error al consultar ultimas ventas:", error);
+        res.status(500).json({ message: "Error al consultar ultimas ventas" });
+    }
+};
 
 export const finalizarVenta = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -219,7 +245,7 @@ export const finalizarVenta = async (req: Request, res: Response): Promise<void>
                 { name: 'unSoloItem', type: sql.Bit(), value: 0 }
             ]
         })
-        
+
         // Obtener el idFacturacion de la venta recién creada
         const idFacturacionResult = await executeRequest({
             query: `select MAX(idFacturacion) as idFacturacion from cabFacturacion where idConfig=@idConfig and idVendedor=@idVendedor`,
@@ -236,7 +262,7 @@ export const finalizarVenta = async (req: Request, res: Response): Promise<void>
             query: `select idFacturacion from detFacturacionComodato where idFacturacion=${idFacturacion}`,
             isStoredProcedure: false
         })
-        
+
         res.status(200).json({
             success: true,
             idFacturacion: idFacturacion,
@@ -247,17 +273,85 @@ export const finalizarVenta = async (req: Request, res: Response): Promise<void>
         console.error("Error al finalizar venta:", error);
         res.status(500).json({ success: false, message: "Error al finalizar venta" });
     }
-}
+};
 
-export const consultaUltimasVentas = async (req: Request, res: Response): Promise<void> => {
+export const guardarPedidoCliente = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { idVendedor } = req.query;
+        const {
+            idConfig,
+            idCliente,
+            ruc,
+            cliente,
+            totalVenta,
+            totalDescuento,
+            idUsuarioAlta,
+            idVendedor,
+            fecha,
+            tipoPrecio
+        } = req.body;
+
         const result = await executeRequest({
-            query: `select top 5 * from cabFacturacion where idVendedor=${idVendedor} order by idFacturacion desc`
-        })
+            query: 'sp_guardarPedidoCliente',
+            isStoredProcedure: true,
+            inputs: [
+                { name: 'idConfig', type: sql.Int(), value: idConfig },
+                { name: 'idCliente', type: sql.Int(), value: idCliente },
+                { name: 'ruc', type: sql.VarChar(15), value: ruc },
+                { name: 'cliente', type: sql.VarChar(60), value: cliente },
+                { name: 'totalVenta', type: sql.Decimal(19, 4), value: totalVenta },
+                { name: 'totalDescuento', type: sql.Decimal(19, 4), value: totalDescuento },
+                { name: 'idUsuarioAlta', type: sql.Int(), value: idUsuarioAlta },
+                { name: 'idVendedor', type: sql.Int(), value: idVendedor },
+                { name: 'fecha', type: sql.VarChar(15), value: fecha },
+                { name: 'tipoPrecio', type: sql.Int(), value: tipoPrecio }
+            ]
+        });
+
+        res.status(200).json({
+            success: true,
+            data: result.recordset
+        });
+    } catch (error: any) {
+        console.error("Error al guardar pedido del cliente:", error);
+        res.status(500).json({ success: false, message: "Error al guardar pedido del cliente" });
+    }
+};
+
+export const consultaPedidosPendientes = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const result = await executeRequest({
+            query: "sp_consultaPedidosPendientes",
+            isStoredProcedure: true
+        });
         res.status(200).json(result.recordset);
     } catch (error: any) {
-        console.error("Error al consultar ultimas ventas:", error);
-        res.status(500).json({ message: "Error al consultar ultimas ventas" });
+        console.error("Error al consultar pedidos pendientes:", error);
+        res.status(500).json({ message: "Error al consultar pedidos pendientes" });
     }
-}
+};
+
+export const pedidoClienteFacturacion = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { idPedidoCliente, idVendedor, idConfig } = req.body;
+
+        const result = await executeRequest({
+            query: "sp_pedidoClienteFacturacion",
+            isStoredProcedure: true,
+            inputs: [
+                { name: "idPedidoCliente", type: sql.Int(), value: idPedidoCliente },
+                { name: "idVendedor", type: sql.Int(), value: idVendedor },
+                { name: "idConfig", type: sql.Int(), value: idConfig }
+            ]
+        });
+
+        const pedidoData = result.recordset[0];
+
+        res.status(200).json({
+            success: true,
+            pedido: pedidoData
+        });
+    } catch (error: any) {
+        console.error("Error al facturar pedido del cliente:", error);
+        res.status(500).json({ success: false, message: "Error al facturar pedido del cliente" });
+    }
+};
