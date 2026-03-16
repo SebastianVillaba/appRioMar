@@ -435,7 +435,7 @@ export default function HomePage() {
         // Obtener datos de factura e imprimir (incluye comodato si existe)
         await handleImprimirFactura(response.data.idFacturacion, response.data.tieneComodato);
 
-        alert(`Factura generada exitosamente!\nCliente: ${clienteSeleccionado.nombre}\nTotal: ${calcularTotal().toLocaleString()}`);
+        alert(`Factura generada exitosamente!\nCliente: ${clienteSeleccionado.nombre}\nTotal: ${calcularTotal().toLocaleString('es-PY')}`);
 
         // Limpiar todo
         setClienteSeleccionado(null);
@@ -808,7 +808,7 @@ export default function HomePage() {
                                 Código: {producto.codigo}
                               </Typography>
                               <Typography variant="body2" color="primary" fontWeight="bold">
-                                {producto.precio.toLocaleString()}
+                                {Number(producto.precio).toLocaleString('es-PY')}
                               </Typography>
                             </Box>
                             <Button
@@ -878,7 +878,7 @@ export default function HomePage() {
                           </Box>
 
                           <Typography variant="body1" fontWeight="bold" color="primary">
-                            {(item.subtotal || item.precioDescuento * item.cantidad).toLocaleString()}
+                            {Number(item.subtotal || item.precioDescuento * item.cantidad).toLocaleString('es-PY')}
                           </Typography>
                         </Box>
                       </Box>
@@ -893,7 +893,7 @@ export default function HomePage() {
                     TOTAL:
                   </Typography>
                   <Typography variant="h5" fontWeight="bold" color="primary">
-                    {calcularTotal().toLocaleString()}
+                    {Number(calcularTotal()).toLocaleString('es-PY')}
                   </Typography>
                 </Box>
               </Box>
