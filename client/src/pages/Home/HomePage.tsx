@@ -29,6 +29,7 @@ import type { PedidoPendiente } from '../../components/HomePage/PedidosPendiente
 import { useUser } from '../../hooks/useUser';
 import type { Venta, TipoVenta, AgregarTmpDetVenta } from '../../types/venta.types';
 import { generarTicket } from '../../services/ticketService.example';
+import { formatearNumero } from '../../services';
 
 export interface Cliente {
   idCliente: number;
@@ -808,7 +809,7 @@ export default function HomePage() {
                                 Código: {producto.codigo}
                               </Typography>
                               <Typography variant="body2" color="primary" fontWeight="bold">
-                                {Number(producto.precio).toLocaleString('es-PY')}
+                                {formatearNumero(Number(producto.precio))}
                               </Typography>
                             </Box>
                             <Button
@@ -878,7 +879,7 @@ export default function HomePage() {
                           </Box>
 
                           <Typography variant="body1" fontWeight="bold" color="primary">
-                            {Number(item.subtotal || item.precioDescuento * item.cantidad).toLocaleString('es-PY')}
+                            {formatearNumero(Number(item.subtotal || item.precioDescuento * item.cantidad))}
                           </Typography>
                         </Box>
                       </Box>
@@ -893,7 +894,7 @@ export default function HomePage() {
                     TOTAL:
                   </Typography>
                   <Typography variant="h5" fontWeight="bold" color="primary">
-                    {Number(calcularTotal()).toLocaleString('es-PY')}
+                    {formatearNumero(Number(calcularTotal()))}
                   </Typography>
                 </Box>
               </Box>
